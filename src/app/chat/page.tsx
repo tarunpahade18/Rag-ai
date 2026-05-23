@@ -243,7 +243,7 @@ export default function ChatPage() {
                 <SelectContent>
                   <SelectItem value="all">All documents in folder</SelectItem>
                   {readyDocuments.map((doc) => (
-                    <SelectItem key={doc.id} value={doc.id}>
+                    <SelectItem key={doc._id} value={doc._id}>
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4" />
                         {doc.name}
