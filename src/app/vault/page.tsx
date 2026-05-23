@@ -258,7 +258,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
                 ? {
                     ...d,
                     _id: docData.document._id,
-                    status: "ready",
+                    status: "ready" as const,
                     chunkCount: result.chunks || 0,
                     fileUrl: `https://legalpdf.eastus.cloudapp.azure.com/${result.fileName}`,
                   }
@@ -274,7 +274,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         } else {
           setDocuments((prev) => prev.map((d) =>
             d.name === file.name && d.vaultId === selectedVault
-              ? { ...d, status: "failed" }
+              ? { ...d, status: "failed" as const }
               : d
           ));
         }
@@ -282,7 +282,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         console.error("Upload error:", error);
         setDocuments((prev) => prev.map((d) =>
           d.name === file.name && d.vaultId === selectedVault
-            ? { ...d, status: "failed" }
+            ? { ...d, status: "failed" as const }
             : d
         ));
       }
@@ -326,10 +326,8 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
               Vaults
             </CardTitle>
             <Dialog open={isCreatingVault} onOpenChange={setIsCreatingVault}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#8c5c2b]">
-                  <Plus className="h-4 w-4" />
-                </Button>
+              <DialogTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8 text-[#8c5c2b]" />}>
+                <Plus className="h-4 w-4" />
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
@@ -402,10 +400,8 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
                           Folders ({folders.filter(f => f.vaultId === vault._id).length})
                         </span>
                         <Dialog open={isCreatingFolder} onOpenChange={setIsCreatingFolder}>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <FolderPlus className="h-3 w-3 text-[#8c5c2b]" />
-                            </Button>
+                          <DialogTrigger render={<Button variant="ghost" size="icon" className="h-6 w-6" />}>
+                            <FolderPlus className="h-3 w-3 text-[#8c5c2b]" />
                           </DialogTrigger>
                           <DialogContent className="sm:max-w-md">
                             <DialogHeader>
@@ -467,7 +463,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
                         </button>
                       ))}
                       
-                      {folders.filter(f => f.vaultId === vault.id).length === 0 && (
+                      {folders.filter(f => f.vaultId === vault._id).length === 0 && (
                         <p className="px-3 text-xs text-[#8c7359]">No folders yet</p>
                       )}
                     </div>

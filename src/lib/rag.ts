@@ -275,7 +275,7 @@ export async function indexDocument({
         totalPages,
         paragraphNumber: chunk.paragraphStart + 1,
         uploadedAt,
-        status: "ready",
+        status: "ready" as const,
         ...(fileUrl && { fileUrl }),
       },
     };
