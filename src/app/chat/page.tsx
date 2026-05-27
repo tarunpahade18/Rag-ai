@@ -10,7 +10,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Folder,
@@ -22,6 +21,7 @@ import {
   Loader2,
 } from "lucide-react";
 import clsx from "clsx";
+import { PdfViewerModal } from "@/components/pdf-viewer-modal";
 
 type Source = {
   id: string;
@@ -30,6 +30,10 @@ type Source = {
   sourceName: string;
   sourceType: string;
   text: string;
+  fileUrl?: string;
+  pageNumber?: number;
+  totalPages?: number;
+  paragraphNumber?: number;
 };
 
 type Message = {
@@ -69,6 +73,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAsking, setIsAsking] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewingSource, setViewingSource] = useState<Source | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -179,6 +184,7 @@ export default function ChatPage() {
   };
 
   return (
+    <>
     <div className="flex h-[calc(100vh-2rem)] gap-6 p-4">
       <Card className="w-80 border-[#d4c4a8] bg-white/80 shadow-sm">
         <CardHeader className="border-b border-[#e8dcc8]">
@@ -193,7 +199,10 @@ export default function ChatPage() {
             </label>
             <Select value={selectedVault} onValueChange={handleVaultChange}>
               <SelectTrigger className="border-[#d4c4a8]">
-                <SelectValue placeholder="Select a vault" />
+                <span className="flex items-center gap-2">
+                  <Scale className="h-4 w-4" />
+                  {selectedVault ? vaults.find((v) => v._id === selectedVault)?.name : "Select a vault"}
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {vaults.map((vault) => (
@@ -215,7 +224,10 @@ export default function ChatPage() {
               </label>
               <Select value={selectedFolder} onValueChange={handleFolderChange}>
                 <SelectTrigger className="border-[#d4c4a8]">
-                  <SelectValue placeholder="Select a folder" />
+                  <span className="flex items-center gap-2">
+                    <Folder className="h-4 w-4" />
+                    {selectedFolder ? vaultFolders.find((f) => f._id === selectedFolder)?.name : "Select a folder"}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {vaultFolders.map((folder) => (
@@ -238,7 +250,14 @@ export default function ChatPage() {
               </label>
               <Select value={selectedDoc} onValueChange={(value) => value && setSelectedDoc(value)}>
                 <SelectTrigger className="border-[#d4c4a8]">
-                  <SelectValue placeholder="All documents in folder" />
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    {selectedDoc === "all"
+                      ? "All documents in folder"
+                      : selectedDoc
+                        ? readyDocuments.find((d) => d._id === selectedDoc)?.name
+                        : "All documents in folder"}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All documents in folder</SelectItem>
@@ -355,7 +374,11 @@ export default function ChatPage() {
                           {message.sources.map((source, index) => (
                             <div
                               key={source.id}
-                              className="rounded-lg border border-[#e8dcc8] bg-[#fdfbf7] p-3"
+                              onClick={() => source.fileUrl && setViewingSource(source)}
+                              className={clsx(
+                                "rounded-lg border border-[#e8dcc8] bg-[#fdfbf7] p-3",
+                                source.fileUrl && "cursor-pointer transition-colors hover:bg-[#f4e7d5]"
+                              )}
                             >
                               <div className="flex items-center justify-between text-xs text-[#6d6258]">
                                 <span className="font-medium">
@@ -426,5 +449,16 @@ export default function ChatPage() {
         </div>
       </Card>
     </div>
+
+    {viewingSource && viewingSource.fileUrl && (
+      <PdfViewerModal
+        fileUrl={viewingSource.fileUrl}
+        sourceName={viewingSource.sourceName}
+        pageNumber={viewingSource.pageNumber}
+        paragraphNumber={viewingSource.paragraphNumber}
+        onClose={() => setViewingSource(null)}
+      />
+    )}
+  </>
   );
 }

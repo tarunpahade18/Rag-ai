@@ -1,7 +1,5 @@
 import mammoth from "mammoth";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const pdf = require("pdf-parse");
+import { PDFParse } from "pdf-parse";
 
 import { embedTexts } from "@/lib/mistral";
 import {
@@ -22,6 +20,7 @@ export type LegalSource = {
   pageNumber?: number;
   totalPages?: number;
   paragraphNumber?: number;
+  fileUrl?: string;
 };
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -49,8 +48,10 @@ export async function extractTextWithPages(file: File): Promise<ExtractedPage[]>
   console.log("📄 Buffer created, size:", buffer.length);
 
   if (extension === "pdf") {
-    console.log("📄 Parsing PDF...");
-    const result = await pdf(buffer);
+    console.log("📄 Parsing PDF with pdf-parse v2...");
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    const result = await parser.getText();
+    await parser.destroy();
     const fullText = result.text || "";
     console.log("📄 PDF full text length:", fullText.length);
     
@@ -346,6 +347,7 @@ export async function retrieveSources({
       pageNumber: metadata?.pageNumber as number | undefined,
       totalPages: metadata?.totalPages as number | undefined,
       paragraphNumber: metadata?.paragraphNumber as number | undefined,
+      fileUrl: metadata?.fileUrl as string | undefined,
     });
   }
   

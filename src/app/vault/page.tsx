@@ -55,6 +55,7 @@ interface Document {
   status: "pending" | "indexing" | "ready" | "failed";
   uploadedAt: string;
   fileUrl?: string;
+  tempId?: string;
 }
 
 export default function VaultPage() {
@@ -208,8 +209,14 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const type = file.name.split(".").pop()?.toUpperCase() || "FILE";
       const size = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 
+      const tempId = crypto.randomUUID();
+      const existingIdx = documents.findIndex(
+        (d) => d.name === file.name && d.folderId === selectedFolder && !d._id
+      );
+
       const tempDoc: Document = {
         _id: "",
+        tempId,
         folderId: selectedFolder,
         vaultId: selectedVault,
         name: file.name,
@@ -220,7 +227,11 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         uploadedAt: new Date().toISOString(),
       };
 
-      setDocuments([...documents, tempDoc]);
+      if (existingIdx >= 0) {
+        setDocuments((prev) => prev.map((d, i) => (i === existingIdx ? tempDoc : d)));
+      } else {
+        setDocuments((prev) => [...prev, tempDoc]);
+      }
 
       try {
         const formData = new FormData();
@@ -254,7 +265,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
 
           if (docRes.ok) {
             setDocuments((prev) => [...prev.map((d) =>
-              d.name === file.name && d.vaultId === selectedVault && d.folderId === selectedFolder
+              d.tempId === tempId
                 ? {
                     ...d,
                     _id: docData.document._id,
@@ -273,7 +284,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
           }
         } else {
           setDocuments((prev) => prev.map((d) =>
-            d.name === file.name && d.vaultId === selectedVault
+            d.tempId === tempId
               ? { ...d, status: "failed" as const }
               : d
           ));
@@ -281,7 +292,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
       } catch (error) {
         console.error("Upload error:", error);
         setDocuments((prev) => prev.map((d) =>
-          d.name === file.name && d.vaultId === selectedVault
+          d.tempId === tempId
             ? { ...d, status: "failed" as const }
             : d
         ));
@@ -292,21 +303,14 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     event.target.value = "";
   };
 
-  const handleDeleteDocument = async (docId: string) => {
-    try {
-      const res = await fetch(`/api/documents?id=${docId}`, { method: "DELETE" });
-      if (res.ok) {
-        setDocuments(documents.filter((d) => d._id !== docId));
-        setFolders(folders.map((f) =>
-          f._id === selectedFolder ? { ...f, documentCount: Math.max(0, f.documentCount - 1) } : f
-        ));
-        setVaults(vaults.map((v) =>
-          v._id === selectedVault ? { ...v, documentCount: Math.max(0, v.documentCount - 1) } : v
-        ));
-      }
-    } catch (error) {
-      console.error("Error deleting document:", error);
-    }
+  const handleDeleteDocument = (doc: Document) => {
+    setDocuments((prev) => prev.filter((d) => d._id !== doc._id && d.tempId !== doc.tempId));
+    setFolders((prev) => prev.map((f) =>
+      f._id === selectedFolder ? { ...f, documentCount: Math.max(0, f.documentCount - 1) } : f
+    ));
+    setVaults((prev) => prev.map((v) =>
+      v._id === selectedVault ? { ...v, documentCount: Math.max(0, v.documentCount - 1) } : v
+    ));
   };
 
   if (isLoading) {
@@ -559,7 +563,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {folderDocuments.map((doc) => (
                 <div
-                  key={doc._id || doc.name}
+                  key={doc._id || doc.tempId || doc.name}
                   className="group flex items-start gap-3 rounded-lg border border-[#e8dcc8] p-4 transition hover:border-[#8c5c2b] hover:shadow-md"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#f4e7d5]">
@@ -608,8 +612,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                    onClick={() => doc._id && handleDeleteDocument(doc._id)}
-                    disabled={!doc._id}
+                    onClick={() => handleDeleteDocument(doc)}
                   >
                     <Trash2 className="h-4 w-4 text-[#842029]" />
                   </Button>

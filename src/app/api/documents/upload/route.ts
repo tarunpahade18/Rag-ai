@@ -12,36 +12,23 @@ import { PDFParse } from "pdf-parse";
 
 export const runtime = "nodejs";
 
-/* =========================================================
-   R2 CONFIG
-========================================================= */
+const R2_ENDPOINT = process.env.R2_ENDPOINT || process.env.R2_API || "";
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || process.env.ACCOUNT_ID_KEY || "";
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || process.env.SECERET_ACCESS_KEY || "";
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || "legalpdf";
 
 const s3 = new S3Client({
   region: "auto",
-
-  endpoint:
-    "https://e75947cbdd8bea701dfeaee5b7bcdef8.r2.cloudflarestorage.com",
-
+  endpoint: R2_ENDPOINT,
   credentials: {
-    accessKeyId:
-      "c9b253dbb24734280b58cb571a045ba0",
-
-    secretAccessKey:
-      "d5359d175cd51b7e2bc46a6188669ee087868afb67952affff22d32a87762ab4",
+    accessKeyId: R2_ACCESS_KEY_ID,
+    secretAccessKey: R2_SECRET_ACCESS_KEY,
   },
 });
-
-/* =========================================================
-   OPENAI
-========================================================= */
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
-
-/* =========================================================
-   PINECONE
-========================================================= */
 
 const pinecone = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY!,
@@ -51,232 +38,163 @@ const pineconeIndex = pinecone.index(
   process.env.PINECONE_INDEX_NAME!
 );
 
-/* =========================================================
-   CHUNKING
-========================================================= */
-
 function chunkText(
   text: string,
   chunkSize = 4000,
   overlap = 400
 ) {
   const chunks: string[] = [];
-
   let start = 0;
-
   while (start < text.length) {
     const end = start + chunkSize;
-
     chunks.push(text.slice(start, end));
-
     start += chunkSize - overlap;
   }
-
   return chunks;
 }
-
-/* =========================================================
-   ROUTE
-========================================================= */
 
 export async function POST(request: Request) {
   try {
     console.log("🚀 Upload started");
 
     const formData = await request.formData();
-
     const file = formData.get("file") as File;
-
-    const vaultId =
-      (formData.get("vaultId") as string) ||
-      "default-vault";
-
-    const folderId =
-      (formData.get("folderId") as string) ||
-      "default-folder";
-
-    const documentId =
-      (formData.get("documentId") as string) ||
-      crypto.randomUUID();
+    const vaultId = (formData.get("vaultId") as string) || "default-vault";
+    const folderId = (formData.get("folderId") as string) || "default-folder";
+    const documentId = (formData.get("documentId") as string) || crypto.randomUUID();
 
     if (!file) {
-      return NextResponse.json(
-        {
-          error: "No file uploaded",
-        },
-        {
-          status: 400,
-        }
-      );
+      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
-
-    /* =========================================================
-       FILE BUFFER
-    ========================================================= */
 
     const arrayBuffer = await file.arrayBuffer();
-
     const buffer = Buffer.from(arrayBuffer);
 
-    /* =========================================================
-       R2 UPLOAD
-    ========================================================= */
-
+    /* R2 UPLOAD */
     console.log("📤 Uploading to R2");
-
     const fileName = `${Date.now()}-${file.name}`;
-
     await s3.send(
       new PutObjectCommand({
-        Bucket: "legalpdf",
-
+        Bucket: R2_BUCKET_NAME,
         Key: fileName,
-
         Body: buffer,
-
-        ContentType:
-          file.type || "application/pdf",
+        ContentType: file.type || "application/pdf",
       })
     );
-
     console.log("✅ Uploaded to R2");
 
-    /* =========================================================
-       PDF TEXT EXTRACTION
-    ========================================================= */
-
+    /* PDF EXTRACTION WITH PAGE TRACKING */
     console.log("📄 Extracting PDF text");
-
-    const parser = new PDFParse({
-      data: buffer,
-    });
-
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
     const parsed = await parser.getText();
-
     await parser.destroy();
 
-    const text = parsed.text;
-
-    console.log(
-      "📄 Extracted text length:",
-      text.length
-    );
-
-    if (!text || text.trim().length === 0) {
+    const fullText = parsed.text;
+    if (!fullText || fullText.trim().length === 0) {
       return NextResponse.json(
-        {
-          error:
-            "No text could be extracted from PDF",
-        },
-        {
-          status: 400,
-        }
+        { error: "No text could be extracted from PDF" },
+        { status: 400 }
       );
     }
+    console.log(`📄 Extracted text length: ${fullText.length}, pages: ${parsed.total}`);
 
-    /* =========================================================
-       CHUNKING
-    ========================================================= */
-
+    /* CHUNKING PER PAGE (tracking page number) */
     console.log("✂️ Chunking text");
+    const totalPages = parsed.total;
 
-    const chunks = chunkText(text);
+    interface ChunkMeta {
+      text: string;
+      pageNumber: number;
+      paragraphNumber: number;
+    }
 
-    console.log(
-      "✂️ Total chunks:",
-      chunks.length
-    );
+    const chunkMetas: ChunkMeta[] = [];
+    for (const page of parsed.pages) {
+      const pageNum = page.num;
+      const pageText = page.text;
+      const paragraphs = pageText.split(/\n\n+/).filter(p => p.trim().length >= 50);
 
-    /* =========================================================
-       EMBEDDINGS
-    ========================================================= */
+      if (paragraphs.length > 0) {
+        for (let pi = 0; pi < paragraphs.length; pi++) {
+          const paraChunks = chunkText(paragraphs[pi]);
+          for (const c of paraChunks) {
+            chunkMetas.push({
+              text: c,
+              pageNumber: pageNum,
+              paragraphNumber: pi + 1,
+            });
+          }
+        }
+      } else {
+        const pageChunks = chunkText(pageText);
+        for (const c of pageChunks) {
+          chunkMetas.push({
+            text: c,
+            pageNumber: pageNum,
+            paragraphNumber: 1,
+          });
+        }
+      }
+    }
 
+    console.log(`✂️ Total chunks: ${chunkMetas.length}`);
+
+    /* EMBEDDINGS */
     console.log("🧠 Creating embeddings");
-
     const vectors = [];
+    for (let i = 0; i < chunkMetas.length; i++) {
+      const { text, pageNumber, paragraphNumber } = chunkMetas[i];
 
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-
-      const embeddingResponse =
-        await openai.embeddings.create({
-          model: "text-embedding-3-small",
-
-          input: chunk,
-        });
-
-      const embedding =
-        embeddingResponse.data[0].embedding;
+      const embeddingResponse = await openai.embeddings.create({
+        model: "text-embedding-3-small",
+        input: text,
+      });
 
       vectors.push({
         id: `${documentId}-${i}`,
-
-        values: embedding,
-
+        values: embeddingResponse.data[0].embedding,
         metadata: {
-          text: chunk,
-
+          text,
           chunkIndex: i,
-
           fileName: file.name,
-
           vaultId,
-
           folderId,
-
           documentId,
+          documentName: file.name,
+          chunkText: text,
+          chunkCount: chunkMetas.length,
+          pageNumber,
+          totalPages,
+          paragraphNumber,
         },
       });
 
-      console.log(
-        `✅ Embedded chunk ${i + 1}/${
-          chunks.length
-        }`
-      );
+      console.log(`✅ Embedded chunk ${i + 1}/${chunkMetas.length} (page ${pageNumber})`);
     }
 
-    /* =========================================================
-       PINECONE UPSERT
-    ========================================================= */
-
+    /* PINECONE UPSERT (batched to stay under 2MB) */
     console.log("📦 Uploading to Pinecone");
-const namespace =
-  `vault-${vaultId}-folder-${folderId}`;
-
-    await pineconeIndex.namespace(namespace).upsert({
-      records: vectors
-    });
-
+    const namespace = `vault-${vaultId}-folder-${folderId}`;
+    const batchSize = 100;
+    for (let i = 0; i < vectors.length; i += batchSize) {
+      const batch = vectors.slice(i, i + batchSize);
+      await pineconeIndex.namespace(namespace).upsert({ records: batch });
+      console.log(`📦 Upserted batch ${Math.min(i + batchSize, vectors.length)}/${vectors.length}`);
+    }
     console.log("✅ Pinecone upsert complete");
-
-    /* =========================================================
-       RESPONSE
-    ========================================================= */
 
     return NextResponse.json({
       success: true,
-
       fileName,
-
       documentId,
-
-      chunks: chunks.length,
-
+      chunks: chunkMetas.length,
       uploaded: true,
     });
   } catch (error) {
     console.error("❌ ERROR:", error);
-
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Upload failed",
-      },
-      {
-        status: 500,
-      }
+      { error: error instanceof Error ? error.message : "Upload failed" },
+      { status: 500 }
     );
   }
 }
