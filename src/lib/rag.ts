@@ -11,6 +11,14 @@ import {
   getNamespace,
 } from "@/lib/pinecone";
 
+PDFParse.setWorker();
+const pdfjsGlobal = (globalThis as Record<string, unknown>).pdfjs as
+  { GlobalWorkerOptions: { workerSrc: string } } | undefined;
+if (pdfjsGlobal?.GlobalWorkerOptions) {
+  pdfjsGlobal.GlobalWorkerOptions.workerSrc =
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/legacy/build/pdf.worker.min.mjs";
+}
+
 export type LegalSource = {
   id: string;
   chunkIndex: number;
