@@ -22,7 +22,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Legal AI Assistant",
+  title: "llmlite Assistant",
   description: "Upload legal documents, retrieve sources, and chat over them.",
 };
 

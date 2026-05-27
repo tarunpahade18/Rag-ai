@@ -1,4 +1,4 @@
-# Legal AI Assistant
+# llmlite Assistant
 
 Next.js legal document chat application with:
 

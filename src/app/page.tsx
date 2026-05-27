@@ -93,7 +93,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <Scale className="h-6 w-6 text-[#8c5c2b]" />
             <span className="font-display text-xl font-semibold text-[#2b1d10]">
-              Legal AI
+              llmlite
             </span>
           </div>
           <div className="flex items-center gap-4">
@@ -235,7 +235,7 @@ export default function LandingPage() {
             Ready to transform your legal workflow?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-[#c4b4a8]">
-            Join legal professionals who trust Legal AI to analyze, manage, and
+            Join legal professionals who trust llmlite to analyze, manage, and
             query their documents with unprecedented accuracy.
           </p>
           <Link href="/auth">
@@ -248,7 +248,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-[#e8dcc8] bg-white/60 py-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 text-sm text-[#6d6258]">
-          <p>&copy; {new Date().getFullYear()} Legal AI Assistant. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} llmlite Assistant. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/auth" className="transition hover:text-[#2b1d10]">Sign In</Link>
             <Link href="/auth" className="transition hover:text-[#2b1d10]">Get Started</Link>

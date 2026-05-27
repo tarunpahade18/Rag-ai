@@ -1,8 +1,8 @@
-# Legal AI Assistant - Architecture
+# llmlite Assistant - Architecture
 
 ## Overview
 
-The Legal AI Assistant is a RAG (Retrieval Augmented Generation) system designed for legal document management, chunking, and intelligent Q&A over legal documents.
+The llmlite Assistant is a RAG (Retrieval Augmented Generation) system designed for legal document management, chunking, and intelligent Q&A over legal documents.
 
 ## Technology Stack
 

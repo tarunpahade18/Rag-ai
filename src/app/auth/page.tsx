@@ -43,7 +43,7 @@ export default function AuthPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
@@ -60,7 +60,7 @@ export default function AuthPage() {
             <Scale className="h-8 w-8 text-[#f8f1e6]" />
           </div>
           <CardTitle className="text-2xl font-semibold text-[#2b1d10]">
-            Legal AI Assistant
+            llmlite Assistant
           </CardTitle>
           <CardDescription className="text-[#6d6258]">
             {isLogin

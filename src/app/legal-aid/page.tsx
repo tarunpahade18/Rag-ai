@@ -40,7 +40,7 @@ export default function LegalAidPage() {
     <div className="p-8">
       <div className="mb-8">
         <h1 className="font-display text-4xl font-semibold text-[#2b1d10]">
-          Legal Aid
+          llmlited
         </h1>
         <p className="mt-2 text-[#6d6258]">
           Tools and features to streamline your legal workflow

@@ -57,7 +57,7 @@ export function AppSidebar() {
             <Scale className="h-5 w-5 text-[#f8f1e6]" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-[#2b1d10]">Legal AI</span>
+            <span className="text-sm font-semibold text-[#2b1d10]">llmlite</span>
             <span className="text-xs text-[#6d6258]">Assistant</span>
           </div>
         </div>
