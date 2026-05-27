@@ -6,7 +6,7 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "your-super-secret-jwt-key-change-this-in-production"
 );
 
-const publicPaths = ["/auth", "/api/auth"];
+const publicPaths = ["/", "/auth", "/api/auth"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

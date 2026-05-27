@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings, User, Bell, Palette, Database } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -37,12 +40,12 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" defaultValue="Legal Professional" className="border-[#d4c4a8]" />
+              <Label htmlFor="name">Username</Label>
+              <Input id="name" defaultValue={user?.username || ""} className="border-[#d4c4a8]" />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="user@lawfirm.com" className="border-[#d4c4a8]" />
+              <Input id="email" type="email" defaultValue={user?.email || ""} className="border-[#d4c4a8]" />
             </div>
             <Button className="bg-[#2b1d10] text-[#f8f1e6] hover:bg-[#402816]">
               Save Changes
@@ -132,10 +135,10 @@ export default function SettingsPage() {
             <div className="rounded-lg border border-[#e8dcc8] p-3">
               <div className="flex items-center justify-between">
                 <p className="font-medium text-[#2b1d10]">Storage Used</p>
-                <p className="text-sm text-[#6d6258]">2.4 GB / 10 GB</p>
+                <p className="text-sm text-[#6d6258]">- / 10 GB</p>
               </div>
               <div className="mt-2 h-2 rounded-full bg-[#e8dcc8]">
-                <div className="h-2 w-1/4 rounded-full bg-[#8c5c2b]" />
+                <div className="h-2 w-0 rounded-full bg-[#8c5c2b]" />
               </div>
             </div>
             <Button variant="outline" className="border-[#d4c4a8] text-[#842029]">

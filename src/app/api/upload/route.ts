@@ -6,6 +6,7 @@ import { validateServerEnv } from "@/lib/env";
 import { indexDocument } from "@/lib/rag";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {

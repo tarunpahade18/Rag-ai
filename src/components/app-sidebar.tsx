@@ -18,7 +18,7 @@ import { useAuth } from "@/lib/auth-context";
 const menuItems = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: Home,
   },
   {

@@ -1,4 +1,6 @@
 import mammoth from "mammoth";
+
+import "@/lib/pdf-polyfill";
 import { PDFParse } from "pdf-parse";
 
 import { embedTexts } from "@/lib/mistral";
@@ -48,65 +50,18 @@ export async function extractTextWithPages(file: File): Promise<ExtractedPage[]>
   console.log("📄 Buffer created, size:", buffer.length);
 
   if (extension === "pdf") {
-    console.log("📄 Parsing PDF with pdf-parse v2...");
+    console.log("📄 Parsing PDF...");
     const parser = new PDFParse({ data: new Uint8Array(buffer) });
     const result = await parser.getText();
     await parser.destroy();
     const fullText = result.text || "";
     console.log("📄 PDF full text length:", fullText.length);
     
-    const pages: ExtractedPage[] = [];
-    
-    // Try to find page markers like "-- 10 of 170 --"
-    const pageMarkerRegex = /--\s*(\d+)\s*of\s*(\d+)\s*--/gi;
-    const matches = [...fullText.matchAll(pageMarkerRegex)];
-    console.log("📄 Page markers found:", matches.length);
-    
-    if (matches.length > 0) {
-      // Split by page markers
-      const pageMarkers = fullText.split(/--\s*\d+\s*of\s*\d+\s*--/);
-      console.log("📄 Split into", pageMarkers.length, "segments");
-      
-      pageMarkers.forEach((pageText: string, idx: number) => {
-        if (pageText.trim().length > 50) {
-          pages.push({
-            pageNumber: idx + 1,
-            text: normalizeText(pageText)
-          });
-          console.log("📄 Page", idx + 1, "text length:", pageText.length);
-        }
-      });
+    if (!fullText.trim()) {
+      throw new Error("No text could be extracted from PDF.");
     }
     
-    // Fallback: split by form feed or estimate
-    if (pages.length === 0) {
-      console.log("📄 No page markers found, using fallback...");
-      const formFeedSplit = fullText.split(/\f/);
-      if (formFeedSplit.length > 1) {
-        formFeedSplit.forEach((pageText: string, idx: number) => {
-          if (pageText.trim().length > 50) {
-            pages.push({ pageNumber: idx + 1, text: normalizeText(pageText) });
-          }
-        });
-      } else {
-        // Estimate: ~2500 chars per page
-        const charsPerPage = 2500;
-        const totalPages = Math.ceil(fullText.length / charsPerPage);
-        console.log("📄 Fallback: estimated", totalPages, "pages");
-        for (let i = 0; i < totalPages; i++) {
-          const start = i * charsPerPage;
-          const end = Math.min(start + charsPerPage, fullText.length);
-          const pageText = fullText.slice(start, end);
-          if (pageText.trim().length > 50) {
-            pages.push({ pageNumber: i + 1, text: normalizeText(pageText) });
-          }
-        }
-      }
-    }
-    
-    console.log("📄 extractTextWithPages: FINAL pages count:", pages.length);
-    pages.forEach((p, i) => console.log(`📄 Page ${i+1}: ${p.text.length} chars`));
-    return pages;
+    return [{ pageNumber: 1, text: normalizeText(fullText) }];
   }
 
   if (extension === "docx") {

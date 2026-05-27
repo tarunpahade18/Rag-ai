@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const pathname = usePathname();
-  const isAuthPage = pathname === "/auth";
+  const isPublicPage = pathname === "/auth" || pathname === "/";
 
   if (isLoading) {
     return (
@@ -17,7 +17,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isAuthPage || !user) {
+  if (isPublicPage || !user) {
     return <>{children}</>;
   }
 

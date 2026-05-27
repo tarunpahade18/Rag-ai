@@ -1,10 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Lock, Key, Smartphone, Eye, EyeOff } from "lucide-react";
+import { Shield, Lock, Key, Smartphone, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export default function SecurityPage() {
+  const { user } = useAuth();
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -81,14 +85,14 @@ export default function SecurityPage() {
           <CardContent>
             <div className="flex items-center justify-between rounded-lg border border-[#e8dcc8] p-4">
               <div className="flex items-center gap-3">
-                <Smartphone className="h-5 w-5 text-[#4a7c59]" />
+                <Smartphone className="h-5 w-5 text-[#6d6258]" />
                 <div>
                   <p className="font-medium text-[#2b1d10]">Authenticator App</p>
                   <p className="text-sm text-[#6d6258]">Use an app to generate codes</p>
                 </div>
               </div>
-              <Button variant="outline" className="border-[#4a7c59] text-[#4a7c59]">
-                Enabled
+              <Button variant="outline" className="border-[#d4c4a8] text-[#6d6258]">
+                Setup
               </Button>
             </div>
           </CardContent>
@@ -114,20 +118,13 @@ export default function SecurityPage() {
             <div className="flex items-center justify-between rounded-lg border border-[#e8dcc8] p-3">
               <div>
                 <p className="font-medium text-[#2b1d10]">Current Session</p>
-                <p className="text-sm text-[#6d6258]">Chrome on Windows • Active now</p>
+                <p className="text-sm text-[#6d6258]">
+                  {user?.email || "Authenticated user"} &bull; Active now
+                </p>
               </div>
               <span className="rounded-full bg-[#4a7c59]/10 px-2 py-1 text-xs font-medium text-[#4a7c59]">
                 Current
               </span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-[#e8dcc8] p-3">
-              <div>
-                <p className="font-medium text-[#2b1d10]">Mobile App</p>
-                <p className="text-sm text-[#6d6258]">iOS • Last active 2 hours ago</p>
-              </div>
-              <Button variant="ghost" size="sm" className="text-[#842029]">
-                Revoke
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -135,33 +132,30 @@ export default function SecurityPage() {
         <Card className="border-[#d4c4a8] bg-white/80 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-semibold text-[#2b1d10]">
-              Security Log
+              Account Info
             </CardTitle>
             <CardDescription className="text-sm text-[#6d6258]">
-              Recent security events
+              Your account details
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between border-b border-[#e8dcc8] pb-2">
               <div>
-                <p className="text-sm text-[#2b1d10]">Password changed</p>
-                <p className="text-xs text-[#6d6258]">Today at 10:30 AM</p>
+                <p className="text-sm text-[#2b1d10]">Username</p>
+                <p className="text-xs text-[#6d6258]">{user?.username || "-"}</p>
               </div>
-              <span className="text-xs text-[#4a7c59]">Success</span>
             </div>
             <div className="flex items-center justify-between border-b border-[#e8dcc8] pb-2">
               <div>
-                <p className="text-sm text-[#2b1d10]">Login from new device</p>
-                <p className="text-xs text-[#6d6258]">Yesterday at 2:15 PM</p>
+                <p className="text-sm text-[#2b1d10]">Email</p>
+                <p className="text-xs text-[#6d6258]">{user?.email || "-"}</p>
               </div>
-              <span className="text-xs text-[#4a7c59]">Success</span>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#2b1d10]">Two-factor enabled</p>
-                <p className="text-xs text-[#6d6258]">3 days ago</p>
+                <p className="text-sm text-[#2b1d10]">Account created</p>
+                <p className="text-xs text-[#6d6258]">-</p>
               </div>
-              <span className="text-xs text-[#4a7c59]">Success</span>
             </div>
           </CardContent>
         </Card>

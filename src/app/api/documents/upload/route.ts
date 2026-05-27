@@ -8,9 +8,11 @@ import { Pinecone } from "@pinecone-database/pinecone";
 
 import OpenAI from "openai";
 
+import "@/lib/pdf-polyfill";
 import { PDFParse } from "pdf-parse";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 const R2_ENDPOINT = process.env.R2_ENDPOINT || process.env.R2_API || "";
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || process.env.ACCOUNT_ID_KEY || "";
@@ -83,7 +85,7 @@ export async function POST(request: Request) {
     );
     console.log("✅ Uploaded to R2");
 
-    /* PDF EXTRACTION WITH PAGE TRACKING */
+    /* PDF EXTRACTION */
     console.log("📄 Extracting PDF text");
     const parser = new PDFParse({ data: new Uint8Array(buffer) });
     const parsed = await parser.getText();
@@ -96,81 +98,47 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    console.log(`📄 Extracted text length: ${fullText.length}, pages: ${parsed.total}`);
+    console.log(`📄 Extracted text length: ${fullText.length}`);
 
-    /* CHUNKING PER PAGE (tracking page number) */
+    /* CHUNKING */
     console.log("✂️ Chunking text");
-    const totalPages = parsed.total;
+    const chunks = chunkText(fullText);
 
-    interface ChunkMeta {
-      text: string;
-      pageNumber: number;
-      paragraphNumber: number;
+    if (chunks.length === 0) {
+      return NextResponse.json(
+        { error: "No readable text found in document" },
+        { status: 400 }
+      );
     }
+    console.log(`✂️ Total chunks: ${chunks.length}`);
 
-    const chunkMetas: ChunkMeta[] = [];
-    for (const page of parsed.pages) {
-      const pageNum = page.num;
-      const pageText = page.text;
-      const paragraphs = pageText.split(/\n\n+/).filter(p => p.trim().length >= 50);
-
-      if (paragraphs.length > 0) {
-        for (let pi = 0; pi < paragraphs.length; pi++) {
-          const paraChunks = chunkText(paragraphs[pi]);
-          for (const c of paraChunks) {
-            chunkMetas.push({
-              text: c,
-              pageNumber: pageNum,
-              paragraphNumber: pi + 1,
-            });
-          }
-        }
-      } else {
-        const pageChunks = chunkText(pageText);
-        for (const c of pageChunks) {
-          chunkMetas.push({
-            text: c,
-            pageNumber: pageNum,
-            paragraphNumber: 1,
-          });
-        }
-      }
-    }
-
-    console.log(`✂️ Total chunks: ${chunkMetas.length}`);
-
-    /* EMBEDDINGS */
+    /* BATCH EMBEDDINGS */
     console.log("🧠 Creating embeddings");
-    const vectors = [];
-    for (let i = 0; i < chunkMetas.length; i++) {
-      const { text, pageNumber, paragraphNumber } = chunkMetas[i];
+    const embeddingResponse = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: chunks,
+    });
 
-      const embeddingResponse = await openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: text,
-      });
+    const vectors = embeddingResponse.data.map((entry, i) => ({
+      id: `${documentId}-${i}`,
+      values: entry.embedding,
+      metadata: {
+        text: chunks[i],
+        chunkIndex: i,
+        fileName: file.name,
+        vaultId,
+        folderId,
+        documentId,
+        documentName: file.name,
+        chunkText: chunks[i],
+        chunkCount: chunks.length,
+        pageNumber: 1,
+        totalPages: 1,
+        paragraphNumber: i + 1,
+      },
+    }));
 
-      vectors.push({
-        id: `${documentId}-${i}`,
-        values: embeddingResponse.data[0].embedding,
-        metadata: {
-          text,
-          chunkIndex: i,
-          fileName: file.name,
-          vaultId,
-          folderId,
-          documentId,
-          documentName: file.name,
-          chunkText: text,
-          chunkCount: chunkMetas.length,
-          pageNumber,
-          totalPages,
-          paragraphNumber,
-        },
-      });
-
-      console.log(`✅ Embedded chunk ${i + 1}/${chunkMetas.length} (page ${pageNumber})`);
-    }
+    console.log(`🧠 Embedded ${vectors.length} chunks in one batch`);
 
     /* PINECONE UPSERT (batched to stay under 2MB) */
     console.log("📦 Uploading to Pinecone");
@@ -187,7 +155,7 @@ export async function POST(request: Request) {
       success: true,
       fileName,
       documentId,
-      chunks: chunkMetas.length,
+      chunks: chunks.length,
       uploaded: true,
     });
   } catch (error) {
