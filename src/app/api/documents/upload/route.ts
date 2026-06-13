@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     }
 
     /* INDEX TO PINECONE */
-    const fileUrl = `https://legalpdf.eastus.cloudapp.azure.com/${fileName}`;
+    const fileUrl = `${process.env.R2_PUBLIC_URL}/${fileName}`;
     const result = await indexDocumentFromText({
       vaultId,
       folderId,

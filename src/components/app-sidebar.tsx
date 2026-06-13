@@ -85,12 +85,14 @@ export function AppSidebar() {
       </div>
 
       <div className="border-t border-[#d4c4a8] space-y-1 p-3">
-        {user && (
-          <div className="mb-2 rounded-lg bg-[#f4e7d5] p-3">
-            <p className="text-sm font-medium text-[#2b1d10] truncate">{user.username}</p>
-            <p className="text-xs text-[#6d6258] truncate">{user.email}</p>
-          </div>
-        )}
+        <a
+          href="https://cal.com/tarunpahade"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-2 block rounded-lg bg-[#2b1d10] p-3 text-center text-sm font-medium text-[#f8f1e6] transition hover:bg-[#402816]"
+        >
+          Book a Call
+        </a>
         {menuItems.length === 0 ? null : (
           <Link
             href="/settings"
