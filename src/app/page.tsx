@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { Check, FileText, MessageSquare, Shield, Search, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -6,7 +8,7 @@ const features = [
   {
     icon: FileText,
     title: "Smart Document Analysis",
-    description: "Upload legal documents and get instant AI-powered analysis of clauses, terms, and potential risks.",
+    description: "Upload any documents and get instant AI-powered analysis of key clauses, terms, and potential risks.",
   },
   {
     icon: MessageSquare,
@@ -47,14 +49,14 @@ const pricingPlans = [
       "Community support",
     ],
     cta: "Get Started",
-    href: "/auth",
+    action: "free" as const,
     highlighted: false,
   },
   {
     name: "Professional",
     price: "$20",
     period: "/month",
-    description: "For legal professionals and small firms",
+    description: "For power users and small teams",
     features: [
       "Unlimited documents",
       "Advanced AI analysis",
@@ -64,13 +66,13 @@ const pricingPlans = [
       "Priority support",
     ],
     cta: "Start Free Trial",
-    href: "/auth",
+    action: "pro" as const,
     highlighted: true,
   },
   {
     name: "Enterprise",
     price: "Custom",
-    description: "For large law firms and organizations",
+    description: "For large organizations",
     features: [
       "Everything in Professional",
       "Custom integrations",
@@ -80,18 +82,32 @@ const pricingPlans = [
       "24/7 premium support",
     ],
     cta: "Contact Sales",
-    href: "/auth",
+    action: "enterprise" as const,
     highlighted: false,
   },
 ]
 
 export default function LandingPage() {
+  const handleCheckout = () => {
+    window.location.href = "https://checkout.dodopayments.com/buy/pdt_0Nfv3lgHiPe5x0mlylFoO?quantity=1"
+  }
+
+  const handlePlanClick = (action: string) => {
+    if (action === "free") {
+      window.location.href = "/auth"
+    } else if (action === "pro") {
+      handleCheckout()
+    } else if (action === "enterprise") {
+      window.location.href = "mailto:support@llmlite.com"
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f8f1e6]">
       <header className="border-b border-[#e8dcc8] bg-white/60 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-2">
-            <Scale className="h-6 w-6 text-[#8c5c2b]" />
+            <BrainIcon className="h-6 w-6 text-[#8c5c2b]" />
             <span className="font-display text-xl font-semibold text-[#2b1d10]">
               llmlite
             </span>
@@ -114,19 +130,18 @@ export default function LandingPage() {
 
       <section className="mx-auto max-w-7xl px-6 pt-24 pb-20 text-center">
         <h1 className="font-display text-5xl font-bold leading-tight text-[#2b1d10] md:text-6xl">
-          Your AI-Powered
-          <br />
-          <span className="text-[#8c5c2b]">Legal Document Assistant</span>
+          RAG your documents
+          <span className="text-[#8c5c2b]">?</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-[#6d6258]">
-          Upload, analyze, and query legal documents with AI. Get instant answers
+          Upload, analyze, and query any documents with AI. Get instant answers
           with precise source citations, manage document vaults, and streamline
-          your legal research workflow.
+          your research workflow.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link href="/auth">
             <Button className="h-11 bg-[#2b1d10] px-8 text-base text-[#f8f1e6] hover:bg-[#402816]">
-              Start Free Trial
+              Start Free
             </Button>
           </Link>
           <Link href="/auth">
@@ -143,10 +158,10 @@ export default function LandingPage() {
       <section className="border-t border-[#e8dcc8] bg-white/40 py-20">
         <div className="mx-auto max-w-7xl px-6">
           <h2 className="font-display text-center text-3xl font-semibold text-[#2b1d10]">
-            Everything you need for legal document management
+            Everything you need for document intelligence
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-center text-[#6d6258]">
-            Powerful tools designed for legal professionals who need to process
+            Powerful tools designed for anyone who needs to process
             and analyze documents efficiently.
           </p>
           <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -211,18 +226,17 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href={plan.href}>
-                  <Button
-                    className={`mt-8 w-full ${
-                      plan.highlighted
-                        ? "bg-[#2b1d10] text-[#f8f1e6] hover:bg-[#402816]"
-                        : "border-[#d4c4a8] text-[#2b1d10]"
-                    }`}
-                    variant={plan.highlighted ? "default" : "outline"}
-                  >
-                    {plan.cta}
-                  </Button>
-                </Link>
+                <Button
+                  onClick={() => handlePlanClick(plan.action)}
+                  className={`mt-8 w-full ${
+                    plan.highlighted
+                      ? "bg-[#2b1d10] text-[#f8f1e6] hover:bg-[#402816]"
+                      : "border-[#d4c4a8] text-[#2b1d10]"
+                  }`}
+                  variant={plan.highlighted ? "default" : "outline"}
+                >
+                  {plan.cta}
+                </Button>
               </div>
             ))}
           </div>
@@ -232,10 +246,10 @@ export default function LandingPage() {
       <section className="border-t border-[#e8dcc8] bg-[#2b1d10] py-16">
         <div className="mx-auto max-w-7xl px-6 text-center">
           <h2 className="font-display text-3xl font-semibold text-[#f8f1e6]">
-            Ready to transform your legal workflow?
+            Ready to transform your document workflow?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-[#c4b4a8]">
-            Join legal professionals who trust llmlite to analyze, manage, and
+            Join users who trust llmlite to analyze, manage, and
             query their documents with unprecedented accuracy.
           </p>
           <Link href="/auth">
@@ -248,7 +262,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-[#e8dcc8] bg-white/60 py-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 text-sm text-[#6d6258]">
-          <p>&copy; {new Date().getFullYear()} llmlite Assistant. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} llmlite. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/auth" className="transition hover:text-[#2b1d10]">Sign In</Link>
             <Link href="/auth" className="transition hover:text-[#2b1d10]">Get Started</Link>
@@ -259,7 +273,7 @@ export default function LandingPage() {
   )
 }
 
-function Scale(props: React.ComponentProps<"svg">) {
+function BrainIcon(props: React.ComponentProps<"svg">) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -273,10 +287,15 @@ function Scale(props: React.ComponentProps<"svg">) {
       strokeLinejoin="round"
       {...props}
     >
-      <path d="M12 2v20" />
-      <path d="M5 5h14" />
-      <path d="M5 19h14" />
-      <path d="M5 5L3 19h18L19 5" />
+      <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+      <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+      <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" />
+      <path d="M17.599 6.5a3 3 0 0 0 .399-1.375" />
+      <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5" />
+      <path d="M3.477 10.896a4 4 0 0 1 .585-.396" />
+      <path d="M19.938 10.5a4 4 0 0 1 .585.396" />
+      <path d="M6 18a4 4 0 0 1-1.967-.516" />
+      <path d="M19.967 17.484A4 4 0 0 1 18 18" />
     </svg>
   )
 }

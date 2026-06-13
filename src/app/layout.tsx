@@ -22,8 +22,8 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "llmlite Assistant",
-  description: "Upload legal documents, retrieve sources, and chat over them.",
+  title: "llmlite",
+  description: "Upload, analyze, and query any documents with AI-powered RAG.",
 };
 
 export default function RootLayout({
