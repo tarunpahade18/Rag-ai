@@ -264,7 +264,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
               size,
               chunkCount: result.chunks,
               status: "ready",
-              fileUrl: `https://legalpdf.eastus.cloudapp.azure.com/${result.fileName}`,
+              fileUrl: result.fileUrl || `https://pub-80dcccfa41724e4487a917ad0d5fc519.r2.dev/${result.fileName}`,
             }),
           });
           
@@ -278,7 +278,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
                     _id: docData.document._id,
                     status: "ready" as const,
                     chunkCount: result.chunks || 0,
-                    fileUrl: `https://legalpdf.eastus.cloudapp.azure.com/${result.fileName}`,
+                    fileUrl: result.fileUrl || `https://pub-80dcccfa41724e4487a917ad0d5fc519.r2.dev/${result.fileName}`,
                   }
                 : d
             )]);

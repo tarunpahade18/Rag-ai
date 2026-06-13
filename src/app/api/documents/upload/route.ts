@@ -115,8 +115,11 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("❌ ERROR:", error);
+    const detail = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : "";
+    console.error("❌ STACK:", stack);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Upload failed" },
+      { error: detail, stack: process.env.NODE_ENV === "development" ? stack : undefined },
       { status: 500 }
     );
   }
