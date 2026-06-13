@@ -1,9 +1,5 @@
 import mammoth from "mammoth";
 
-import "@/lib/pdf-polyfill";
-import "pdfjs-dist/legacy/build/pdf.worker.mjs";
-import { PDFParse } from "pdf-parse";
-
 import { embedTexts } from "@/lib/mistral";
 import {
   type VectorRecord,
@@ -51,18 +47,7 @@ export async function extractTextWithPages(file: File): Promise<ExtractedPage[]>
   console.log("📄 Buffer created, size:", buffer.length);
 
   if (extension === "pdf") {
-    console.log("📄 Parsing PDF...");
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
-    const result = await parser.getText();
-    await parser.destroy();
-    const fullText = result.text || "";
-    console.log("📄 PDF full text length:", fullText.length);
-    
-    if (!fullText.trim()) {
-      throw new Error("No text could be extracted from PDF.");
-    }
-    
-    return [{ pageNumber: 1, text: normalizeText(fullText) }];
+    throw new Error("PDF text extraction must be done client-side. Use extractPdfText() from @/lib/pdf-extract.");
   }
 
   if (extension === "docx") {
@@ -249,6 +234,80 @@ export async function indexDocument({
   return {
     documentId,
     documentName: file.name,
+    fileUrl,
+    documentType,
+    chunkCount: chunks.length,
+    status: "ready",
+  };
+}
+
+export interface IndexDocumentFromTextParams {
+  vaultId: string;
+  folderId: string;
+  documentId: string;
+  fileName: string;
+  pages: ExtractedPage[];
+  fileUrl?: string;
+}
+
+export async function indexDocumentFromText({
+  vaultId,
+  folderId,
+  documentId,
+  fileName,
+  pages,
+  fileUrl,
+}: IndexDocumentFromTextParams): Promise<IndexDocumentResult> {
+  console.log("🔍 indexDocumentFromText: START", { vaultId, folderId, documentId, fileName });
+
+  if (!pages.length) {
+    throw new Error("No text could be extracted from the uploaded document.");
+  }
+
+  const chunks = splitIntoChunksWithMeta(pages);
+  console.log("🔍 indexDocumentFromText: chunks created:", chunks.length);
+
+  if (!chunks.length) {
+    throw new Error("The document did not contain enough readable text to index.");
+  }
+
+  const documentType = fileName.split(".").pop()?.toLowerCase() || "txt";
+  const uploadedAt = new Date().toISOString();
+  const totalPages = pages.length;
+
+  const chunkTexts = chunks.map(c => c.text);
+  const embeddings = await embedTexts(chunkTexts);
+
+  const records: VectorRecord[] = embeddings.map((values, chunkIndex) => {
+    const chunk = chunks[chunkIndex];
+    return {
+      id: `${documentId}-chunk-${chunkIndex}`,
+      values,
+      metadata: {
+        vaultId,
+        folderId,
+        documentId,
+        documentName: fileName,
+        documentType,
+        chunkIndex,
+        chunkText: chunk.text,
+        chunkCount: chunks.length,
+        pageNumber: chunk.pageNumber,
+        totalPages,
+        paragraphNumber: chunk.paragraphStart + 1,
+        uploadedAt,
+        status: "ready" as const,
+        ...(fileUrl && { fileUrl }),
+      },
+    };
+  });
+
+  await upsertVectors(vaultId, folderId, records);
+  console.log("🔍 indexDocumentFromText: upsert complete!");
+
+  return {
+    documentId,
+    documentName: fileName,
     fileUrl,
     documentType,
     chunkCount: chunks.length,

@@ -3,14 +3,9 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import mammoth from "mammoth";
 
-import { Pinecone } from "@pinecone-database/pinecone";
-
-import OpenAI from "openai";
-
-import "@/lib/pdf-polyfill";
-import "pdfjs-dist/legacy/build/pdf.worker.mjs";
-import { PDFParse } from "pdf-parse";
+import { indexDocumentFromText, type ExtractedPage } from "@/lib/rag";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -29,31 +24,24 @@ const s3 = new S3Client({
   },
 });
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+function normalizeText(text: string) {
+  return text.replace(/\r/g, "").replace(/\t/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+}
 
-const pinecone = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY!,
-});
+async function extractServerSide(file: File): Promise<ExtractedPage[]> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const ext = file.name.split(".").pop()?.toLowerCase();
 
-const pineconeIndex = pinecone.index(
-  process.env.PINECONE_INDEX_NAME!
-);
-
-function chunkText(
-  text: string,
-  chunkSize = 4000,
-  overlap = 400
-) {
-  const chunks: string[] = [];
-  let start = 0;
-  while (start < text.length) {
-    const end = start + chunkSize;
-    chunks.push(text.slice(start, end));
-    start += chunkSize - overlap;
+  if (ext === "docx") {
+    const result = await mammoth.extractRawText({ buffer });
+    return [{ pageNumber: 1, text: normalizeText(result.value || "") }];
   }
-  return chunks;
+
+  if (ext === "txt" || ext === "md") {
+    return [{ pageNumber: 1, text: normalizeText(buffer.toString("utf8")) }];
+  }
+
+  throw new Error("Server-side extraction only supports DOCX, TXT, MD. PDFs must be extracted client-side.");
 }
 
 export async function POST(request: Request) {
@@ -65,6 +53,7 @@ export async function POST(request: Request) {
     const vaultId = (formData.get("vaultId") as string) || "default-vault";
     const folderId = (formData.get("folderId") as string) || "default-folder";
     const documentId = (formData.get("documentId") as string) || crypto.randomUUID();
+    const pagesJson = formData.get("pages") as string | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -86,77 +75,42 @@ export async function POST(request: Request) {
     );
     console.log("✅ Uploaded to R2");
 
-    /* PDF EXTRACTION */
-    console.log("📄 Extracting PDF text");
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
-    const parsed = await parser.getText();
-    await parser.destroy();
+    /* TEXT EXTRACTION */
+    let pages: ExtractedPage[];
 
-    const fullText = parsed.text;
-    if (!fullText || fullText.trim().length === 0) {
+    if (pagesJson) {
+      pages = JSON.parse(pagesJson) as ExtractedPage[];
+      console.log("📄 Using client-extracted pages:", pages.length);
+    } else {
+      pages = await extractServerSide(file);
+      console.log("📄 Server-extracted pages:", pages.length);
+    }
+
+    if (!pages.length) {
       return NextResponse.json(
-        { error: "No text could be extracted from PDF" },
+        { error: "No text could be extracted from the document." },
         { status: 400 }
       );
     }
-    console.log(`📄 Extracted text length: ${fullText.length}`);
 
-    /* CHUNKING */
-    console.log("✂️ Chunking text");
-    const chunks = chunkText(fullText);
-
-    if (chunks.length === 0) {
-      return NextResponse.json(
-        { error: "No readable text found in document" },
-        { status: 400 }
-      );
-    }
-    console.log(`✂️ Total chunks: ${chunks.length}`);
-
-    /* BATCH EMBEDDINGS */
-    console.log("🧠 Creating embeddings");
-    const embeddingResponse = await openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: chunks,
+    /* INDEX TO PINECONE */
+    const fileUrl = `https://legalpdf.eastus.cloudapp.azure.com/${fileName}`;
+    const result = await indexDocumentFromText({
+      vaultId,
+      folderId,
+      documentId,
+      fileName: file.name,
+      pages,
+      fileUrl,
     });
 
-    const vectors = embeddingResponse.data.map((entry, i) => ({
-      id: `${documentId}-${i}`,
-      values: entry.embedding,
-      metadata: {
-        text: chunks[i],
-        chunkIndex: i,
-        fileName: file.name,
-        vaultId,
-        folderId,
-        documentId,
-        documentName: file.name,
-        chunkText: chunks[i],
-        chunkCount: chunks.length,
-        pageNumber: 1,
-        totalPages: 1,
-        paragraphNumber: i + 1,
-      },
-    }));
-
-    console.log(`🧠 Embedded ${vectors.length} chunks in one batch`);
-
-    /* PINECONE UPSERT (batched to stay under 2MB) */
-    console.log("📦 Uploading to Pinecone");
-    const namespace = `vault-${vaultId}-folder-${folderId}`;
-    const batchSize = 100;
-    for (let i = 0; i < vectors.length; i += batchSize) {
-      const batch = vectors.slice(i, i + batchSize);
-      await pineconeIndex.namespace(namespace).upsert({ records: batch });
-      console.log(`📦 Upserted batch ${Math.min(i + batchSize, vectors.length)}/${vectors.length}`);
-    }
-    console.log("✅ Pinecone upsert complete");
+    console.log("✅ Indexing complete:", result.chunkCount, "chunks");
 
     return NextResponse.json({
       success: true,
       fileName,
       documentId,
-      chunks: chunks.length,
+      chunks: result.chunkCount,
       uploaded: true,
     });
   } catch (error) {

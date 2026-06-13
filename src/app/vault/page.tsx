@@ -25,6 +25,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { extractPdfText } from "@/lib/pdf-extract";
 
 interface Vault {
   _id: string;
@@ -238,6 +239,12 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         formData.append("file", file);
         formData.append("folderId", selectedFolder);
         formData.append("vaultId", selectedVault);
+
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (ext === "pdf") {
+          const pages = await extractPdfText(file);
+          formData.append("pages", JSON.stringify(pages));
+        }
 
         const response = await fetch("/api/documents/upload", {
           method: "POST",
