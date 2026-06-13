@@ -11,7 +11,7 @@ export interface IVault extends Document {
 
 const VaultSchema = new Schema<IVault>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     name: { type: String, required: true, trim: true },
     description: { type: String, default: "" },
   },
