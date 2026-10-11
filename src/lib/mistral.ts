@@ -1,23 +1,30 @@
 import OpenAI from "openai";
 import { getRequiredEnv } from "@/lib/env";
 
-let openaiClient: OpenAI | null = null;
+let openRouterClient: OpenAI | null = null;
 
-function getOpenAIClient() {
-  if (!openaiClient) {
-    const apiKey = getRequiredEnv("OPENAI_API_KEY");
-    openaiClient = new OpenAI({ apiKey });
+function getOpenRouterClient() {
+  if (!openRouterClient) {
+    const apiKey = getRequiredEnv("OPENROUTER_API_KEY");
+    openRouterClient = new OpenAI({
+      apiKey,
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": "https://www.llmlite.xyz",
+        "X-Title": "Legal AI",
+      },
+    });
   }
-  return openaiClient;
+  return openRouterClient;
 }
 
 export async function embedTexts(inputs: string[]) {
-  console.log("🤖 embedTexts: starting OpenAI embedding for", inputs.length, "chunks");
+  console.log("🤖 embedTexts: starting OpenRouter embedding for", inputs.length, "chunks");
 
-  const client = getOpenAIClient();
+  const client = getOpenRouterClient();
 
   const response = await client.embeddings.create({
-    model: "text-embedding-3-small",
+    model: "openai/text-embedding-3-small",
     dimensions: 1536,
     input: inputs,
   });

@@ -3,7 +3,7 @@ const requiredEnvVars = [
   "GROQ_API_KEY",
   "PINECONE_API_KEY",
   "PINECONE_INDEX_NAME",
-  "OPENAI_API_KEY",
+  "OPENROUTER_API_KEY",
   "MONGODB_URI",
   "JWT_SECRET",
 ] as const;
