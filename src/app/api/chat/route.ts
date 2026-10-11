@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { validateServerEnv } from "@/lib/env";
-import { getGroqClient, getGroqModel } from "@/lib/groq";
+import { getChatModel, getOpenRouterClient } from "@/lib/openrouter";
 import { retrieveSources } from "@/lib/rag";
 
 export const runtime = "nodejs";
@@ -81,9 +81,9 @@ console.log(sources);
       });
     }
 
-    const groq = getGroqClient();
-    const completion = await groq.chat.completions.create({
-      model: getGroqModel(),
+    const openrouter = getOpenRouterClient();
+    const completion = await openrouter.chat.completions.create({
+      model: getChatModel(),
       temperature: 0.2,
       messages: [
         {

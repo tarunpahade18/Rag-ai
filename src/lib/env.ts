@@ -1,6 +1,5 @@
 const requiredEnvVars = [
   "MISTRAL_API_KEY",
-  "GROQ_API_KEY",
   "PINECONE_API_KEY",
   "PINECONE_INDEX_NAME",
   "OPENROUTER_API_KEY",
