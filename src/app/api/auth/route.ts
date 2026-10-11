@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/user";
-import { createToken, setAuthCookie } from "@/lib/auth";
+import { Vault } from "@/models/vault";
+import { Folder } from "@/models/folder";
+import { DocumentModel } from "@/models/document";
+import { Chat } from "@/models/chat";
+import { deleteNamespace } from "@/lib/pinecone";
+import { createToken, getSession, setAuthCookie } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -118,6 +123,41 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Auth error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE() {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await connectDB();
+    const userId = session.userId;
+
+    const folders = await Folder.find({ userId }).select("_id vaultId");
+    await Promise.allSettled(
+      folders.map((folder) =>
+        deleteNamespace(String(folder.vaultId), String(folder._id))
+      )
+    );
+
+    await DocumentModel.deleteMany({ userId });
+    await Folder.deleteMany({ userId });
+    await Vault.deleteMany({ userId });
+    await Chat.deleteMany({ userId });
+    await User.deleteOne({ _id: userId });
+
+    const response = NextResponse.json({ success: true });
+    response.cookies.set("auth-token", "", { maxAge: 0, path: "/" });
+    return response;
+  } catch (error) {
+    console.error("Delete account error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
