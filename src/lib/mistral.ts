@@ -5,7 +5,13 @@ let openRouterClient: OpenAI | null = null;
 
 function getOpenRouterClient() {
   if (!openRouterClient) {
-    const apiKey = getRequiredEnv("OPENROUTER_API_KEY");
+    const apiKey = getRequiredEnv("OPENROUTER_API_KEY").trim();
+    if (!apiKey) {
+      throw new Error(
+        "OPENROUTER_API_KEY is blank. Re-enter it in the hosting dashboard without surrounding spaces.",
+      );
+    }
+    console.log("🤖 OpenRouter key length:", apiKey.length);
     openRouterClient = new OpenAI({
       apiKey,
       baseURL: "https://openrouter.ai/api/v1",

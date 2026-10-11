@@ -6,8 +6,14 @@ let openRouterClient: OpenAI | null = null;
 
 export function getOpenRouterClient() {
   if (!openRouterClient) {
+    const apiKey = getRequiredEnv("OPENROUTER_API_KEY").trim();
+    if (!apiKey) {
+      throw new Error(
+        "OPENROUTER_API_KEY is blank. Re-enter it in the hosting dashboard without surrounding spaces.",
+      );
+    }
     openRouterClient = new OpenAI({
-      apiKey: getRequiredEnv("OPENROUTER_API_KEY"),
+      apiKey,
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
         "HTTP-Referer": "https://www.llmlite.xyz",
