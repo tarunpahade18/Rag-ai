@@ -5,9 +5,22 @@ import { User } from "@/models/user";
 import { createToken, setAuthCookie } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  let body: unknown;
   try {
-    const body = await request.json();
-    const { username, email, password, action } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: 'Invalid request body. Send valid JSON.' },
+      { status: 400 }
+    );
+  }
+  try {
+    const { username, email, password, action } = (body ?? {}) as {
+      username?: string;
+      email?: string;
+      password?: string;
+      action?: string;
+    };
 
     if (!email || !password) {
       return NextResponse.json(
