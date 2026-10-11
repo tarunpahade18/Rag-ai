@@ -28,6 +28,6 @@ export function getOpenRouterClient() {
 export function getChatModel() {
   return getOptionalEnv(
     "OPENROUTER_CHAT_MODEL",
-    "meta-llama/llama-3.3-70b-versatile",
+    "deepseek/deepseek-v4.1-flash",
   )!;
 }
