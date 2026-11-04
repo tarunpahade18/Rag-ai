@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "plugin:zip": "powershell -ExecutionPolicy Bypass -File scripts/package-plugin.ps1"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1048.0",

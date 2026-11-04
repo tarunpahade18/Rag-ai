@@ -289,3 +289,48 @@ document question.
 Fetch `/api/plugin/tools`, pass the tools to xAI, and confirm a `tool_calls`
 response for a prompt such as "List my legal vaults". Return the REST endpoint
 result as the tool message.
+
+## OpenAI Plugin Directory Submission
+
+OpenAI's plugin portal does **not** support API-key/bearer MCP connections. It supports no-auth, OAuth, or mixed auth. This repo includes an OAuth flow for the MCP server.
+
+### OAuth endpoints
+
+- `/.well-known/oauth-authorization-server` (discovery)
+- `/.well-known/oauth-protected-resource` (resource metadata)
+- `POST /api/oauth/register` (dynamic client registration)
+- `GET /api/oauth/authorize` (authorization code + PKCE)
+- `POST /api/oauth/token` (authorization_code + refresh_token)
+
+Set `OPENAI_APPS_CHALLENGE_TOKEN` to the exact token shown in the portal. It is served at:
+
+```text
+https://www.llmlite.xyz/.well-known/openai-apps-challenge
+```
+
+### Build the plugin ZIP
+
+The package lives in `plugin-package/`:
+
+```text
+plugin-package/
++-- plugin.json
++-- mcp.json
++-- skills/get-started/SKILL.md
++-- assets/logo.png, icon.png
+```
+
+Create the ZIP:
+
+```bash
+npm run plugin:zip
+```
+
+Upload `llmlite-plugin.zip` in the OpenAI Plugins dashboard, connect the MCP server, complete domain verification, run the tool scan, then submit for review.
+
+### Review materials
+
+- 5 positive and 3 negative test cases are in `plugin.json`.
+- Replace the placeholder `demo_recording_url` with a real walkthrough video.
+- Enter reviewer credentials separately in **Review details**.
+- Keep `https://www.llmlite.xyz/support`, `/privacy`, and `/terms` reachable.

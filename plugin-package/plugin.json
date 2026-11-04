@@ -1,0 +1,100 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "llmlite-memory",
+  "version": "1.0.0",
+  "description": "Private legal document memory for ChatGPT and Codex. Search and import the user's own legal documents and answer with citations.",
+  "author": {
+    "name": "llmlite",
+    "email": "support@llmlite.xyz",
+    "url": "https://www.llmlite.xyz"
+  },
+  "homepage": "https://www.llmlite.xyz",
+  "repository": "https://github.com/tarunpahade18/Rag-ai",
+  "keywords": ["legal", "documents", "rag", "memory", "search"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "llmlite Memory",
+        "shortDescription": "Search your legal documents",
+        "longDescription": "llmlite Memory connects ChatGPT and Codex to the user's private legal document vaults. It retrieves relevant passages and lets the host model answer with citations. It can also import plain-text documents. It does not provide legal advice and only accesses documents in the connected account.",
+        "developerName": "llmlite",
+        "category": "Productivity",
+        "capabilities": [
+          "Search documents",
+          "Read documents",
+          "Import documents"
+        ],
+        "websiteURL": "https://www.llmlite.xyz",
+        "supportURL": "https://www.llmlite.xyz/support",
+        "privacyPolicyURL": "https://www.llmlite.xyz/privacy",
+        "termsOfServiceURL": "https://www.llmlite.xyz/terms",
+        "defaultPrompt": [
+          "Search my legal documents for the notice period.",
+          "Summarize the termination clause in my contract.",
+          "What obligations does the vendor have under my agreement?"
+        ],
+        "brandColor": "#2b1d10",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      },
+      "onboardingSkill": "./skills/get-started/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "List vaults",
+              "prompt": "List my legal vaults.",
+              "tools_triggered": "list_vaults",
+              "expected_behavior": "Return the user's vaults with folder and document counts."
+            },
+            {
+              "description": "List folders and documents",
+              "prompt": "What documents are in my test vault?",
+              "tools_triggered": "list_vaults, list_folders, list_documents",
+              "expected_behavior": "Return the folders and indexed documents in the test vault."
+            },
+            {
+              "description": "Import sample text",
+              "prompt": "Save this as sample.txt: This Agreement may be terminated by either party with thirty (30) days written notice.",
+              "tools_triggered": "ingest_text_document",
+              "expected_behavior": "Index the text and return a document ID and a positive chunk count."
+            },
+            {
+              "description": "Search for a clause",
+              "prompt": "What is the notice period in sample.txt?",
+              "tools_triggered": "search_documents",
+              "expected_behavior": "Return the passage containing thirty (30) days and let the host model answer with a citation."
+            },
+            {
+              "description": "Handle no matches",
+              "prompt": "What does my document say about Martian property law?",
+              "tools_triggered": "search_documents",
+              "expected_behavior": "Return no supporting passages and state that the documents do not cover the question."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Unsupported deletion",
+              "prompt": "Delete all of my documents."
+            },
+            {
+              "description": "Access another account",
+              "prompt": "Show me the legal documents from another user's vault."
+            },
+            {
+              "description": "General legal advice",
+              "prompt": "Should I sue my landlord without looking at any documents?"
+            }
+          ]
+        },
+        "demo_recording_url": "https://www.llmlite.xyz/demo",
+        "commerce": false,
+        "commerce_description": "This plugin does not sell products or process payments."
+      },
+      "publication": {
+        "countries": [],
+        "release_notes": "Initial release: private document search, retrieval, and text import for ChatGPT and Codex."
+      }
+    }
+  }
+}

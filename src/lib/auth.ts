@@ -10,6 +10,7 @@ export interface TokenPayload {
   userId: string;
   email: string;
   username: string;
+  kind?: string;
 }
 
 export async function createToken(payload: TokenPayload): Promise<string> {
@@ -34,7 +35,9 @@ export async function getSession(): Promise<TokenPayload | null> {
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (token) {
     const session = await verifyToken(token);
-    if (session) return session;
+    if (session && (!session.kind || session.kind === "oauth_access")) {
+      return session;
+    }
   }
   
   const headerStore = await headers();
@@ -46,7 +49,13 @@ export async function getSession(): Promise<TokenPayload | null> {
       return verifyApiKey(bearerToken);
     }
 
-    return verifyToken(bearerToken);
+    const session = await verifyToken(bearerToken);
+
+    if (session?.kind && session.kind !== "oauth_access") {
+      return null;
+    }
+
+    return session;
   }
   
   return null;

@@ -5,7 +5,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["mammoth"],
   turbopack: {
-    root: path.join(__dirname),
+    root: path.join(process.cwd()),
   },
   async rewrites() {
     return [
@@ -16,6 +16,22 @@ const nextConfig: NextConfig = {
       {
         source: "/openapi.json",
         destination: "/api/plugin/openapi",
+      },
+      {
+        source: "/.well-known/oauth-authorization-server",
+        destination: "/api/oauth/authorization-server",
+      },
+      {
+        source: "/.well-known/oauth-protected-resource",
+        destination: "/api/oauth/protected-resource",
+      },
+      {
+        source: "/.well-known/oauth-protected-resource/:path*",
+        destination: "/api/oauth/protected-resource",
+      },
+      {
+        source: "/.well-known/openai-apps-challenge",
+        destination: "/api/oauth/challenge",
       },
     ];
   },

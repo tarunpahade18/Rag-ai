@@ -14,6 +14,7 @@ import {
   ToolError,
 } from "@/lib/plugin-tools";
 import { TOOL_SCHEMAS } from "@/lib/plugin-tool-schemas";
+import { getPluginBaseUrl } from "@/lib/plugin";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -30,6 +31,7 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type, mcp-session-id",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+  "Access-Control-Expose-Headers": "WWW-Authenticate, Mcp-Session-Id",
 };
 
 function rpcResult(id: JsonRpcRequest["id"], result: unknown) {
@@ -142,9 +144,14 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
 
   if (!session) {
+    const baseUrl = getPluginBaseUrl(request);
+
     return NextResponse.json(rpcError(null, -32001, "Unauthorized"), {
       status: 401,
-      headers: CORS_HEADERS,
+      headers: {
+        ...CORS_HEADERS,
+        "WWW-Authenticate": `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
+      },
     });
   }
 

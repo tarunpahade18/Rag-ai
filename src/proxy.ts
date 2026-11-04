@@ -13,9 +13,13 @@ const publicPaths = [
   "/api/plugin/manifest",
   "/api/plugin/openapi",
   "/api/plugin/tools",
+  "/api/oauth",
   "/api/mcp",
   "/openapi.json",
   "/plugin-logo.png",
+  "/support",
+  "/privacy",
+  "/terms",
 ];
 
 function isPublicPath(pathname: string) {
