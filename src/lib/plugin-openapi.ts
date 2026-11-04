@@ -212,12 +212,42 @@ export function buildOpenApiSpec(baseUrl: string) {
           },
         },
       },
+      "/api/plugin/search": {
+        post: {
+          operationId: "searchDocuments",
+          summary: "Retrieve memory passages from the user's documents",
+          description:
+            "Returns relevant document passages without generating an answer, so the host assistant can reason over the user's memory itself. Omit vaultId and folderId to search all documents.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/SearchRequest" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Retrieved passages.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/SearchResponse" },
+                },
+              },
+            },
+            "400": errorResponse,
+            "401": errorResponse,
+            "404": errorResponse,
+            "500": errorResponse,
+          },
+        },
+      },
       "/api/plugin/ask": {
         post: {
           operationId: "askDocuments",
           summary: "Ask a question about the user's documents",
           description:
-            "Retrieves relevant passages from the user's vaults and returns a grounded answer with citations. Omit vaultId and folderId to search all documents.",
+            "Optional server-side answer generation. Prefer searchDocuments when the host model should answer itself. Returns a grounded answer with citations.",
           requestBody: {
             required: true,
             content: {
@@ -343,6 +373,41 @@ export function buildOpenApiSpec(baseUrl: string) {
             score: { type: "number", description: "Similarity score." },
             text: { type: "string", description: "Passage text." },
             fileUrl: { type: "string", description: "Source file URL." },
+          },
+        },
+        SearchRequest: {
+          type: "object",
+          required: ["query"],
+          properties: {
+            query: {
+              type: "string",
+              description: "Search query or question to match against documents.",
+            },
+            vaultId: {
+              type: "string",
+              description: "Optional vault ID to scope the search.",
+            },
+            folderId: {
+              type: "string",
+              description: "Optional folder ID to scope the search.",
+            },
+            topK: {
+              type: "integer",
+              minimum: 1,
+              maximum: 20,
+              description: "Maximum number of passages to return.",
+            },
+          },
+        },
+        SearchResponse: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "The search query." },
+            sources: {
+              type: "array",
+              items: { $ref: "#/components/schemas/Source" },
+            },
+            note: { type: "string", description: "Usage guidance for the model." },
           },
         },
         AskRequest: {

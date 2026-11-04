@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 
 import { generateGroundedAnswer, type ChatHistoryMessage } from "@/lib/answer";
 import { connectDB } from "@/lib/db";
-import { validateServerEnv } from "@/lib/env";
+import { validateRetrievalEnv, validateServerEnv } from "@/lib/env";
 import {
   indexDocumentFromText,
   retrieveSourcesAcrossFolders,
@@ -28,6 +28,14 @@ export type AskToolArgs = {
   folderId?: string;
   topK?: number;
   history?: ChatHistoryMessage[];
+};
+
+export type SearchToolArgs = {
+  query?: string;
+  question?: string;
+  vaultId?: string;
+  folderId?: string;
+  topK?: number;
 };
 
 export type IngestToolArgs = {
@@ -208,6 +216,53 @@ export async function listDocuments(userId: string, folderId?: string) {
   }));
 }
 
+async function resolveScopes(
+  userId: string,
+  vaultId?: string,
+  folderId?: string,
+): Promise<FolderScope[]> {
+  if (folderId) {
+    const folder = await Folder.findOne({ _id: folderId, userId });
+
+    if (!folder) {
+      throw new ToolError("Folder not found", 404);
+    }
+
+    return [
+      {
+        vaultId: String(folder.vaultId),
+        folderId: String(folder._id),
+      },
+    ];
+  }
+
+  let folders: IFolder[];
+
+  if (vaultId) {
+    const vault = await Vault.findOne({ _id: vaultId, userId });
+
+    if (!vault) {
+      throw new ToolError("Vault not found", 404);
+    }
+
+    folders = await Folder.find({
+      userId,
+      vaultId: vault._id,
+    })
+      .sort({ createdAt: 1 })
+      .limit(25);
+  } else {
+    folders = await Folder.find({ userId })
+      .sort({ createdAt: 1 })
+      .limit(25);
+  }
+
+  return folders.map((folder) => ({
+    vaultId: String(folder.vaultId),
+    folderId: String(folder._id),
+  }));
+}
+
 export async function askDocuments(userId: string, args: AskToolArgs) {
   validateServerEnv();
 
@@ -222,48 +277,7 @@ export async function askDocuments(userId: string, args: AskToolArgs) {
 
   await connectDB();
 
-  let scopes: FolderScope[] = [];
-
-  if (folderId) {
-    const folder = await Folder.findOne({ _id: folderId, userId });
-
-    if (!folder) {
-      throw new ToolError("Folder not found", 404);
-    }
-
-    scopes = [
-      {
-        vaultId: String(folder.vaultId),
-        folderId: String(folder._id),
-      },
-    ];
-  } else {
-    let folders: IFolder[];
-
-    if (vaultId) {
-      const vault = await Vault.findOne({ _id: vaultId, userId });
-
-      if (!vault) {
-        throw new ToolError("Vault not found", 404);
-      }
-
-      folders = await Folder.find({
-        userId,
-        vaultId: vault._id,
-      })
-        .sort({ createdAt: 1 })
-        .limit(25);
-    } else {
-      folders = await Folder.find({ userId })
-        .sort({ createdAt: 1 })
-        .limit(25);
-    }
-
-    scopes = folders.map((folder) => ({
-      vaultId: String(folder.vaultId),
-      folderId: String(folder._id),
-    }));
-  }
+  const scopes = await resolveScopes(userId, vaultId, folderId);
 
   if (!scopes.length) {
     return {
@@ -292,11 +306,46 @@ export async function askDocuments(userId: string, args: AskToolArgs) {
   return { answer, sources };
 }
 
+export async function searchDocuments(userId: string, args: SearchToolArgs) {
+  validateRetrievalEnv();
+
+  const query = (args.query ?? args.question)?.trim();
+  const vaultId = args.vaultId?.trim();
+  const folderId = args.folderId?.trim();
+  const topK = Math.min(Math.max(Number(args.topK) || 8, 1), 20);
+
+  if (!query) {
+    throw new ToolError("query is required");
+  }
+
+  await connectDB();
+
+  const scopes = await resolveScopes(userId, vaultId, folderId);
+
+  if (!scopes.length) {
+    return {
+      query,
+      sources: [],
+      note: "No indexed documents were found for this account. Import a document first.",
+    };
+  }
+
+  const sources = await retrieveSourcesAcrossFolders(scopes, query, topK);
+
+  return {
+    query,
+    sources,
+    note: sources.length
+      ? "Answer from these passages using your own reasoning and cite them."
+      : "No supporting passages were found. Tell the user instead of guessing.",
+  };
+}
+
 export async function ingestTextDocument(
   userId: string,
   args: IngestToolArgs,
 ) {
-  validateServerEnv();
+  validateRetrievalEnv();
 
   const name = args.name?.trim();
   const text = typeof args.text === "string" ? args.text.trim() : "";

@@ -73,9 +73,39 @@ export const TOOL_SCHEMAS = [
     },
   },
   {
+    name: "search_documents",
+    description:
+      "Retrieve relevant passages from the user's documents without generating an answer. Use this when the host assistant (Claude, ChatGPT, Grok, Cursor) should reason over the user's memory itself. Returns source text, document names, page numbers, and scores.",
+    inputSchema: {
+      type: "object",
+      required: ["query"],
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query or question to match against documents.",
+        },
+        vaultId: {
+          type: "string",
+          description: "Optional vault ID to scope the search.",
+        },
+        folderId: {
+          type: "string",
+          description: "Optional folder ID to scope the search.",
+        },
+        topK: {
+          type: "integer",
+          minimum: 1,
+          maximum: 20,
+          description: "Maximum number of passages to return.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "ask_documents",
     description:
-      "Answer a question using the user's indexed documents. Returns an answer plus cited source passages. Omit vaultId and folderId to search everything.",
+      "Optional: generate an answer with the server's LLM using the user's documents. Prefer search_documents when the host model should answer itself. Omit vaultId and folderId to search everything.",
     inputSchema: {
       type: "object",
       required: ["question"],

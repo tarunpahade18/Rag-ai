@@ -106,11 +106,27 @@ same card.
 | List folders | `GET /api/folders?vaultId=...` |
 | Create folder | `POST /api/folders` |
 | List documents | `GET /api/documents?folderId=...` |
-| Ask a question | `POST /api/plugin/ask` |
+| Retrieve memory passages | `POST /api/plugin/search` |
+| Ask a question (server LLM) | `POST /api/plugin/ask` |
 | Import text | `POST /api/plugin/documents/ingest` |
 
-All plugin endpoints accept `Authorization: Bearer sk_plugin_...`. The ask
-endpoint searches every folder when `vaultId` and `folderId` are omitted.
+All plugin endpoints accept `Authorization: Bearer sk_plugin_...`. The search
+and ask endpoints search every folder when `vaultId` and `folderId` are omitted.
+
+### Use your own AI with our memory
+
+The recommended flow is **memory only**: the host assistant (Claude, ChatGPT,
+Grok, or Cursor) does the reasoning and this app only stores/retrieves the
+user's documents.
+
+- Call `search_documents` (MCP) or `POST /api/plugin/search` to get relevant
+  passages, document names, page numbers, and scores.
+- Answer with the host model using those passages. No OpenRouter call is made.
+- `ask_documents` remains available as an optional server-side answer generator,
+  but it is not required.
+
+This means Claude/Grok/ChatGPT can use their own model and context while this
+app acts as persistent private memory across sessions.
 
 ## Use from Claude, ChatGPT, Cursor, and Grok
 
@@ -124,7 +140,7 @@ The same tools are exposed in four formats:
 | Any HTTP client | REST | `https://www.llmlite.xyz/api/plugin/ask` |
 
 MCP tools: `list_vaults`, `create_vault`, `list_folders`, `create_folder`,
-`list_documents`, `ask_documents`, `ingest_text_document`.
+`list_documents`, `search_documents`, `ask_documents`, `ingest_text_document`.
 
 ### Claude / Cursor MCP config
 
@@ -230,7 +246,20 @@ curl -s https://www.llmlite.xyz/api/mcp \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_vaults","arguments":{}}}'
 ```
 
-### 4. End-to-end ask test
+### 4. Memory-only retrieval test (recommended)
+
+```bash
+curl -s https://www.llmlite.xyz/api/plugin/search \
+  -H "Authorization: Bearer sk_plugin_REPLACE_ME" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"What is the notice period in these documents?"}'
+```
+
+Expected result: a `sources` array with document names, page numbers, excerpts,
+and scores. No generated answer is returned, because the host AI is responsible
+for reasoning.
+
+### 5. Optional server-side ask test
 
 ```bash
 curl -s https://www.llmlite.xyz/api/plugin/ask \
@@ -239,24 +268,23 @@ curl -s https://www.llmlite.xyz/api/plugin/ask \
   -d '{"question":"What is the notice period in these documents?"}'
 ```
 
-Expected result: an `answer` string plus a `sources` array with document names,
-page numbers, and excerpts. If the account has no documents, the answer explains
-that no supporting passages were found.
+Expected result: an `answer` string plus a `sources` array. If the account has no
+documents, the answer explains that no supporting passages were found.
 
-### 5. ChatGPT
+### 6. ChatGPT
 
 1. Open the GPT editor and add an Action.
 2. Import `https://www.llmlite.xyz/openapi.json`.
 3. Set authentication to **API Key / Bearer** and paste the `sk_plugin_...` key.
 4. Test with: "List my legal vaults" and then "What is the notice period?"
 
-### 6. Claude / Cursor
+### 7. Claude / Cursor
 
 Add the MCP config above, restart the client, and ask it to list vaults. The
 client should call `list_vaults` and then `ask_documents` when you ask a
 document question.
 
-### 7. Grok
+### 8. Grok
 
 Fetch `/api/plugin/tools`, pass the tools to xAI, and confirm a `tool_calls`
 response for a prompt such as "List my legal vaults". Return the REST endpoint

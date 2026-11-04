@@ -23,15 +23,16 @@ export function getPluginBaseUrl(request?: Request) {
   return "http://localhost:3000";
 }
 
-const DESCRIPTION_FOR_MODEL = `You are the llmlite Legal Assistant plugin. Use it whenever the user asks about their own legal documents, contracts, policies, or case files.
+const DESCRIPTION_FOR_MODEL = `You are the llmlite memory plugin. Use it whenever the user asks about their own legal documents, contracts, policies, or case files. This plugin supplies the user's private document memory; you supply the reasoning.
 
 Workflow:
 1. Call listVaults to see the user's document vaults.
 2. Call listFolders with the relevant vaultId, then listDocuments if you need to confirm what is covered.
-3. Call askDocuments with the question and, when known, vaultId and folderId. Omit those fields to search all of the user's documents.
-4. Ground every answer in the returned sources. Cite them as [1], [2], matching the source order, and mention the document name and page number when available. If no passages are returned, tell the user instead of guessing.
-5. To add a document, call ingestTextDocument with the full plain text and a file name such as "lease.pdf". Create a vault or folder first only when the user wants a specific location.
-6. Never invent statutes, clauses, dates, or citations. Do not use this plugin for general legal advice unrelated to the user's uploaded documents.`;
+3. Call searchDocuments with the query and, when known, vaultId and folderId. Omit those fields to search all of the user's documents. This returns passages only and does not use a server-side model.
+4. Answer the user yourself from the returned passages. Cite them as [1], [2], matching the source order, and mention the document name and page number when available. If no passages are returned, say so instead of guessing.
+5. Use askDocuments only when the user explicitly asks for the server's own generated answer.
+6. To add a document, call ingestTextDocument with the full plain text and a file name such as "lease.pdf". Create a vault or folder first only when the user wants a specific location.
+7. Never invent statutes, clauses, dates, or citations. Do not use this plugin for general legal advice unrelated to the user's uploaded documents.`;
 
 export function buildPluginManifest(baseUrl: string) {
   const verificationToken =

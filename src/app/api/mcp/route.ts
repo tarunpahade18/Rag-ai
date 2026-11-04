@@ -10,6 +10,7 @@ import {
   listDocuments,
   listFolders,
   listVaults,
+  searchDocuments,
   ToolError,
 } from "@/lib/plugin-tools";
 import { TOOL_SCHEMAS } from "@/lib/plugin-tool-schemas";
@@ -90,6 +91,15 @@ async function callTool(
     case "list_documents":
       return toolResult(
         await listDocuments(userId, args.folderId as string | undefined),
+      );
+    case "search_documents":
+      return toolResult(
+        await searchDocuments(userId, {
+          query: args.query as string | undefined,
+          vaultId: args.vaultId as string | undefined,
+          folderId: args.folderId as string | undefined,
+          topK: args.topK as number | undefined,
+        }),
       );
     case "ask_documents":
       return toolResult(

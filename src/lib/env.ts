@@ -7,7 +7,15 @@ const requiredEnvVars = [
   "JWT_SECRET",
 ] as const;
 
-export function getRequiredEnv(name: (typeof requiredEnvVars)[number]) {
+const retrievalEnvVars = [
+  "MISTRAL_API_KEY",
+  "PINECONE_API_KEY",
+  "PINECONE_INDEX_NAME",
+  "MONGODB_URI",
+  "JWT_SECRET",
+] as const;
+
+export function getRequiredEnv(name: string) {
   const value = process.env[name];
 
   if (!value) {
@@ -23,6 +31,12 @@ export function getOptionalEnv(name: string, fallback?: string) {
 
 export function validateServerEnv() {
   for (const envVar of requiredEnvVars) {
+    getRequiredEnv(envVar);
+  }
+}
+
+export function validateRetrievalEnv() {
+  for (const envVar of retrievalEnvVars) {
     getRequiredEnv(envVar);
   }
 }
