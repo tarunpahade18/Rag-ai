@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "llmlite-legal": {
-      "url": "https://your-domain.com/api/mcp",
+      "url": "https://www.llmlite.xyz/api/mcp",
       "headers": {
         "Authorization": "Bearer sk_plugin_REPLACE_ME"
       }

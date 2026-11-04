@@ -69,7 +69,7 @@ Add these environment variables (see `.env.example`):
 ```bash
 PLUGIN_BASE_URL=https://your-public-domain.com
 CHATGPT_PLUGIN_VERIFICATION_TOKEN=<token from OpenAI>
-PLUGIN_CONTACT_EMAIL=support@your-domain.com
+PLUGIN_CONTACT_EMAIL=support@llmlite.xyz
 ```
 
 `PLUGIN_BASE_URL` must be a public HTTPS origin. For local testing, expose
@@ -85,8 +85,8 @@ same card.
 ### 3. Install / submit
 
 1. Serve the app over HTTPS.
-2. Verify `https://your-domain.com/.well-known/ai-plugin.json` and
-   `https://your-domain.com/openapi.json` are reachable without auth.
+2. Verify `https://www.llmlite.xyz/.well-known/ai-plugin.json` and
+   `https://www.llmlite.xyz/openapi.json` are reachable without auth.
 3. In the ChatGPT plugin submission flow (or the GPT editor's **Actions**
    screen), point the manifest/spec at those URLs and use the bearer key as the
    service auth credential.
@@ -118,10 +118,10 @@ The same tools are exposed in four formats:
 
 | Client | Integration | URL |
 | --- | --- | --- |
-| ChatGPT | GPT Action / plugin | `https://your-domain.com/openapi.json` |
-| Claude / Cursor | Remote MCP server | `https://your-domain.com/api/mcp` |
-| Grok / xAI API | OpenAI-compatible tool schemas | `https://your-domain.com/api/plugin/tools` |
-| Any HTTP client | REST | `https://your-domain.com/api/plugin/ask` |
+| ChatGPT | GPT Action / plugin | `https://www.llmlite.xyz/openapi.json` |
+| Claude / Cursor | Remote MCP server | `https://www.llmlite.xyz/api/mcp` |
+| Grok / xAI API | OpenAI-compatible tool schemas | `https://www.llmlite.xyz/api/plugin/tools` |
+| Any HTTP client | REST | `https://www.llmlite.xyz/api/plugin/ask` |
 
 MCP tools: `list_vaults`, `create_vault`, `list_folders`, `create_folder`,
 `list_documents`, `ask_documents`, `ingest_text_document`.
@@ -134,7 +134,7 @@ Add this to the MCP config (`mcp.example.json` is included):
 {
   "mcpServers": {
     "llmlite-legal": {
-      "url": "https://your-domain.com/api/mcp",
+      "url": "https://www.llmlite.xyz/api/mcp",
       "headers": {
         "Authorization": "Bearer sk_plugin_REPLACE_ME"
       }
@@ -154,7 +154,7 @@ server with `mcp-remote`:
       "args": [
         "-y",
         "mcp-remote",
-        "https://your-domain.com/api/mcp",
+        "https://www.llmlite.xyz/api/mcp",
         "--header",
         "Authorization: Bearer sk_plugin_REPLACE_ME"
       ]
@@ -169,7 +169,7 @@ Fetch the OpenAI-compatible tool definitions and pass them to the xAI chat
 completions call:
 
 ```ts
-const tools = await fetch("https://your-domain.com/api/plugin/tools").then(
+const tools = await fetch("https://www.llmlite.xyz/api/plugin/tools").then(
   (response) => response.json(),
 );
 
@@ -199,9 +199,9 @@ Use these checks for the plugin submission form or for local verification.
 ### 1. Public discovery URLs
 
 ```bash
-curl -s https://your-domain.com/.well-known/ai-plugin.json
-curl -s https://your-domain.com/openapi.json
-curl -s https://your-domain.com/api/plugin/tools
+curl -s https://www.llmlite.xyz/.well-known/ai-plugin.json
+curl -s https://www.llmlite.xyz/openapi.json
+curl -s https://www.llmlite.xyz/api/plugin/tools
 ```
 
 All three must return `200` without a session cookie.
@@ -214,17 +214,17 @@ the `sk_plugin_...` value.
 ### 3. MCP smoke test
 
 ```bash
-curl -s https://your-domain.com/api/mcp \
+curl -s https://www.llmlite.xyz/api/mcp \
   -H "Authorization: Bearer sk_plugin_REPLACE_ME" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
 
-curl -s https://your-domain.com/api/mcp \
+curl -s https://www.llmlite.xyz/api/mcp \
   -H "Authorization: Bearer sk_plugin_REPLACE_ME" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 
-curl -s https://your-domain.com/api/mcp \
+curl -s https://www.llmlite.xyz/api/mcp \
   -H "Authorization: Bearer sk_plugin_REPLACE_ME" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_vaults","arguments":{}}}'
@@ -233,7 +233,7 @@ curl -s https://your-domain.com/api/mcp \
 ### 4. End-to-end ask test
 
 ```bash
-curl -s https://your-domain.com/api/plugin/ask \
+curl -s https://www.llmlite.xyz/api/plugin/ask \
   -H "Authorization: Bearer sk_plugin_REPLACE_ME" \
   -H "Content-Type: application/json" \
   -d '{"question":"What is the notice period in these documents?"}'
@@ -246,7 +246,7 @@ that no supporting passages were found.
 ### 5. ChatGPT
 
 1. Open the GPT editor and add an Action.
-2. Import `https://your-domain.com/openapi.json`.
+2. Import `https://www.llmlite.xyz/openapi.json`.
 3. Set authentication to **API Key / Bearer** and paste the `sk_plugin_...` key.
 4. Test with: "List my legal vaults" and then "What is the notice period?"
 
