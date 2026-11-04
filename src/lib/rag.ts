@@ -322,49 +322,90 @@ export interface RetrieveSourcesParams {
   topK?: number;
 }
 
+export interface FolderScope {
+  vaultId: string;
+  folderId: string;
+}
+
+type VectorMatch = Awaited<ReturnType<typeof queryVectors>>[number];
+
+function mapMatchToSource(match: VectorMatch): LegalSource | null {
+  const metadata = match.metadata as Record<string, unknown> | null;
+
+  // Support both documentName/fileName and text/chunkText
+  const sourceName = (metadata?.documentName || metadata?.fileName) as string | undefined;
+  const chunkText = (metadata?.text || metadata?.chunkText) as string | undefined;
+
+  if (!chunkText || !sourceName) {
+    console.log("⚠️ Skipping match - missing text or sourceName", {
+      hasText: !!chunkText,
+      sourceName,
+    });
+    return null;
+  }
+
+  return {
+    id: match.id,
+    chunkIndex: (metadata?.chunkIndex as number) ?? 0,
+    score: match.score ?? 0,
+    sourceName,
+    sourceType: (metadata?.documentType as string) ?? "document",
+    text: chunkText,
+    summary: metadata?.summary as string | undefined,
+    pageNumber: metadata?.pageNumber as number | undefined,
+    totalPages: metadata?.totalPages as number | undefined,
+    paragraphNumber: metadata?.paragraphNumber as number | undefined,
+    fileUrl: metadata?.fileUrl as string | undefined,
+  };
+}
+
 export async function retrieveSources({
   vaultId,
   folderId,
   query,
   topK = 6,
 }: RetrieveSourcesParams): Promise<LegalSource[]> {
-  console.log(vaultId, folderId, query);
-  
   const [queryVector] = await embedTexts([query]);
   const matches = await queryVectors(vaultId, folderId, queryVector, topK);
 
-  const sources: LegalSource[] = [];
-  
-  for (const match of matches) {
-    const metadata = match.metadata as Record<string, unknown> | null;
+  return matches
+    .map(mapMatchToSource)
+    .filter((source): source is LegalSource => source !== null);
+}
 
-    // Support both documentName/fileName and text/chunkText
-    const sourceName = (metadata?.documentName || metadata?.fileName) as string | undefined;
-    const chunkText = (metadata?.text || metadata?.chunkText) as string | undefined;
-    
-    if (!chunkText || !sourceName) {
-      console.log("⚠️ Skipping match - missing text or sourceName", { 
-        hasText: !!chunkText, 
-        sourceName 
-      });
-      continue;
-    }
-    console.log("✅ Source found:", sourceName, "chunkIndex:", metadata?.chunkIndex);
-
-    sources.push({
-      id: match.id,
-      chunkIndex: (metadata?.chunkIndex as number) ?? 0,
-      score: match.score ?? 0,
-      sourceName,
-      sourceType: (metadata?.documentType as string) ?? "document",
-      text: chunkText,
-      summary: metadata?.summary as string | undefined,
-      pageNumber: metadata?.pageNumber as number | undefined,
-      totalPages: metadata?.totalPages as number | undefined,
-      paragraphNumber: metadata?.paragraphNumber as number | undefined,
-      fileUrl: metadata?.fileUrl as string | undefined,
-    });
+export async function retrieveSourcesAcrossFolders(
+  scopes: FolderScope[],
+  query: string,
+  topK = 6,
+): Promise<LegalSource[]> {
+  if (!scopes.length) {
+    return [];
   }
-  
-  return sources;
+
+  const [queryVector] = await embedTexts([query]);
+  const perFolder = Math.max(
+    2,
+    Math.ceil(topK / Math.min(scopes.length, 8)),
+  );
+
+  const matches = await Promise.all(
+    scopes.map((scope) =>
+      queryVectors(scope.vaultId, scope.folderId, queryVector, perFolder),
+    ),
+  );
+
+  const byId = new Map<string, LegalSource>();
+
+  for (const source of matches.flat().map(mapMatchToSource)) {
+    if (!source) continue;
+
+    const existing = byId.get(source.id);
+    if (!existing || source.score > existing.score) {
+      byId.set(source.id, source);
+    }
+  }
+
+  return [...byId.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK);
 }

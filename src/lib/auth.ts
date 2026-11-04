@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies, headers } from "next/headers";
 import { getRequiredEnv } from "./env";
+import { isPluginApiKey, verifyApiKey } from "./api-keys";
 
 const JWT_SECRET = new TextEncoder().encode(getRequiredEnv("JWT_SECRET"));
 const COOKIE_NAME = "auth-token";
@@ -40,6 +41,11 @@ export async function getSession(): Promise<TokenPayload | null> {
   const authHeader = headerStore.get("authorization");
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const bearerToken = authHeader.substring(7);
+
+    if (isPluginApiKey(bearerToken)) {
+      return verifyApiKey(bearerToken);
+    }
+
     return verifyToken(bearerToken);
   }
   

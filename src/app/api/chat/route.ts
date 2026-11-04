@@ -1,54 +1,17 @@
 import { NextResponse } from "next/server";
 
+import { generateGroundedAnswer, type ChatHistoryMessage } from "@/lib/answer";
 import { validateServerEnv } from "@/lib/env";
-import { getChatModel, getOpenRouterClient } from "@/lib/openrouter";
 import { retrieveSources } from "@/lib/rag";
 
 export const runtime = "nodejs";
-
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-function formatSourcesForPrompt(
-  sources: Awaited<ReturnType<typeof retrieveSources>>,
-) {
-  return sources
-    .map(
-      (source, index) =>
-        `[${index + 1}] ${source.sourceName} | chunk ${source.chunkIndex + 1}\n${source.text}`,
-    )
-    .join("\n\n");
-}
-
-function getAssistantText(
-  content:
-    | string
-    | Array<{ type?: string; text?: string | null }>
-    | null
-    | undefined,
-) {
-  if (typeof content === "string") {
-    return content;
-  }
-
-  if (Array.isArray(content)) {
-    return content
-      .map((item) => ("text" in item && item.text ? item.text : ""))
-      .join("")
-      .trim();
-  }
-
-  return "";
-}
 
 export async function POST(request: Request) {
   try {
     validateServerEnv();
 
     const body = (await request.json()) as {
-      messages?: ChatMessage[];
+      messages?: ChatHistoryMessage[];
       vaultId?: string;
       folderId?: string;
       question?: string;
@@ -71,7 +34,6 @@ export async function POST(request: Request) {
       folderId,
       query: question,
     });
-console.log(sources);
 
     if (!sources.length) {
       return NextResponse.json({
@@ -81,37 +43,13 @@ console.log(sources);
       });
     }
 
-    const openrouter = getOpenRouterClient();
-    const completion = await openrouter.chat.completions.create({
-      model: getChatModel(),
-      temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a legal document assistant. Answer only from the supplied document excerpts. If the excerpts do not support a claim, say that clearly. Keep the answer concise, professional, and cite the source blocks with bracketed numbers like [1] or [2]. Do not invent statutes, clauses, or facts.",
-        },
-        ...messages.map((message) => ({
-          role: message.role,
-          content: message.content,
-        })),
-        {
-          role: "user",
-          content: `Question: ${question}\n\nSource excerpts:\n${formatSourcesForPrompt(
-            sources,
-          )}`,
-        },
-      ],
-    });
-
-    const answer = getAssistantText(completion.choices[0]?.message?.content);
-
-    return NextResponse.json({
-      answer:
-        answer ||
-        "I found relevant passages, but the model did not return a usable answer.",
+    const answer = await generateGroundedAnswer({
+      question,
       sources,
+      history: messages,
     });
+
+    return NextResponse.json({ answer, sources });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Chat request failed.";
 

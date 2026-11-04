@@ -52,3 +52,212 @@ This app uses `mistral-embed`, which returns `1024`-dimension vectors. The serve
 3. Ask a question.
 4. The server retrieves the most relevant chunks from Pinecone and sends them to Groq as grounding context.
 5. The UI shows the answer and the source excerpts used for retrieval.
+
+## ChatGPT Plugin / GPT Action
+
+This app ships a ChatGPT plugin manifest and an OpenAPI 3.0 spec.
+
+- Manifest: `/.well-known/ai-plugin.json`
+- OpenAPI: `/openapi.json`
+- Logo: `/plugin-logo.png`
+- Legal page: `/legal`
+
+### 1. Configure
+
+Add these environment variables (see `.env.example`):
+
+```bash
+PLUGIN_BASE_URL=https://your-public-domain.com
+CHATGPT_PLUGIN_VERIFICATION_TOKEN=<token from OpenAI>
+PLUGIN_CONTACT_EMAIL=support@your-domain.com
+```
+
+`PLUGIN_BASE_URL` must be a public HTTPS origin. For local testing, expose
+`localhost:3000` with a tunnel (for example `ngrok http 3000`) and set
+`PLUGIN_BASE_URL` to the tunnel URL.
+
+### 2. Create a bearer key
+
+Sign in, open **Settings**, and click **Generate plugin key**. Copy the
+`sk_plugin_...` value immediately; it is only shown once. Revoke keys from the
+same card.
+
+### 3. Install / submit
+
+1. Serve the app over HTTPS.
+2. Verify `https://your-domain.com/.well-known/ai-plugin.json` and
+   `https://your-domain.com/openapi.json` are reachable without auth.
+3. In the ChatGPT plugin submission flow (or the GPT editor's **Actions**
+   screen), point the manifest/spec at those URLs and use the bearer key as the
+   service auth credential.
+4. Paste the verification token from OpenAI into
+   `CHATGPT_PLUGIN_VERIFICATION_TOKEN` before submitting.
+
+> Note: OpenAI retired the public plugin directory in favor of GPT Actions. The
+> same manifest and OpenAPI spec work as a GPT Action; you can import
+> `/openapi.json` directly in the GPT editor.
+
+### Plugin endpoints
+
+| Operation | Endpoint |
+| --- | --- |
+| List vaults | `GET /api/vaults` |
+| Create vault | `POST /api/vaults` |
+| List folders | `GET /api/folders?vaultId=...` |
+| Create folder | `POST /api/folders` |
+| List documents | `GET /api/documents?folderId=...` |
+| Ask a question | `POST /api/plugin/ask` |
+| Import text | `POST /api/plugin/documents/ingest` |
+
+All plugin endpoints accept `Authorization: Bearer sk_plugin_...`. The ask
+endpoint searches every folder when `vaultId` and `folderId` are omitted.
+
+## Use from Claude, ChatGPT, Cursor, and Grok
+
+The same tools are exposed in four formats:
+
+| Client | Integration | URL |
+| --- | --- | --- |
+| ChatGPT | GPT Action / plugin | `https://your-domain.com/openapi.json` |
+| Claude / Cursor | Remote MCP server | `https://your-domain.com/api/mcp` |
+| Grok / xAI API | OpenAI-compatible tool schemas | `https://your-domain.com/api/plugin/tools` |
+| Any HTTP client | REST | `https://your-domain.com/api/plugin/ask` |
+
+MCP tools: `list_vaults`, `create_vault`, `list_folders`, `create_folder`,
+`list_documents`, `ask_documents`, `ingest_text_document`.
+
+### Claude / Cursor MCP config
+
+Add this to the MCP config (`mcp.example.json` is included):
+
+```json
+{
+  "mcpServers": {
+    "llmlite-legal": {
+      "url": "https://your-domain.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer sk_plugin_REPLACE_ME"
+      }
+    }
+  }
+}
+```
+
+For Claude Desktop versions that only support stdio servers, bridge the remote
+server with `mcp-remote`:
+
+```json
+{
+  "mcpServers": {
+    "llmlite-legal": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://your-domain.com/api/mcp",
+        "--header",
+        "Authorization: Bearer sk_plugin_REPLACE_ME"
+      ]
+    }
+  }
+}
+```
+
+### Grok / xAI
+
+Fetch the OpenAI-compatible tool definitions and pass them to the xAI chat
+completions call:
+
+```ts
+const tools = await fetch("https://your-domain.com/api/plugin/tools").then(
+  (response) => response.json(),
+);
+
+const response = await fetch("https://api.x.ai/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.XAI_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "grok-4",
+    messages,
+    tools: tools.tools,
+  }),
+});
+```
+
+When Grok returns a `tool_calls` entry, send the arguments to the matching REST
+endpoint with the `sk_plugin_...` bearer key, then return the JSON result as the
+tool message. The agent can list vaults, create folders, ingest text, and ask
+grounded questions without any client-specific code.
+
+## Testing Instructions
+
+Use these checks for the plugin submission form or for local verification.
+
+### 1. Public discovery URLs
+
+```bash
+curl -s https://your-domain.com/.well-known/ai-plugin.json
+curl -s https://your-domain.com/openapi.json
+curl -s https://your-domain.com/api/plugin/tools
+```
+
+All three must return `200` without a session cookie.
+
+### 2. Create a key
+
+Sign in at `/auth`, open `/settings`, click **Generate plugin key**, and copy
+the `sk_plugin_...` value.
+
+### 3. MCP smoke test
+
+```bash
+curl -s https://your-domain.com/api/mcp \
+  -H "Authorization: Bearer sk_plugin_REPLACE_ME" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
+
+curl -s https://your-domain.com/api/mcp \
+  -H "Authorization: Bearer sk_plugin_REPLACE_ME" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+
+curl -s https://your-domain.com/api/mcp \
+  -H "Authorization: Bearer sk_plugin_REPLACE_ME" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_vaults","arguments":{}}}'
+```
+
+### 4. End-to-end ask test
+
+```bash
+curl -s https://your-domain.com/api/plugin/ask \
+  -H "Authorization: Bearer sk_plugin_REPLACE_ME" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What is the notice period in these documents?"}'
+```
+
+Expected result: an `answer` string plus a `sources` array with document names,
+page numbers, and excerpts. If the account has no documents, the answer explains
+that no supporting passages were found.
+
+### 5. ChatGPT
+
+1. Open the GPT editor and add an Action.
+2. Import `https://your-domain.com/openapi.json`.
+3. Set authentication to **API Key / Bearer** and paste the `sk_plugin_...` key.
+4. Test with: "List my legal vaults" and then "What is the notice period?"
+
+### 6. Claude / Cursor
+
+Add the MCP config above, restart the client, and ask it to list vaults. The
+client should call `list_vaults` and then `ask_documents` when you ask a
+document question.
+
+### 7. Grok
+
+Fetch `/api/plugin/tools`, pass the tools to xAI, and confirm a `tool_calls`
+response for a prompt such as "List my legal vaults". Return the REST endpoint
+result as the tool message.
