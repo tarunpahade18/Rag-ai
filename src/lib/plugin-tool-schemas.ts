@@ -8,6 +8,13 @@ export const TOOL_SCHEMAS = [
       properties: {},
       additionalProperties: false,
     },
+    annotations: {
+      title: "List vaults",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: "create_vault",
@@ -24,6 +31,13 @@ export const TOOL_SCHEMAS = [
       },
       additionalProperties: false,
     },
+    annotations: {
+      title: "Create vault",
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: "list_folders",
@@ -38,6 +52,13 @@ export const TOOL_SCHEMAS = [
         },
       },
       additionalProperties: false,
+    },
+    annotations: {
+      title: "List folders",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -56,6 +77,13 @@ export const TOOL_SCHEMAS = [
       },
       additionalProperties: false,
     },
+    annotations: {
+      title: "Create folder",
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   {
     name: "list_documents",
@@ -70,6 +98,13 @@ export const TOOL_SCHEMAS = [
         },
       },
       additionalProperties: false,
+    },
+    annotations: {
+      title: "List documents",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
   },
   {
@@ -101,6 +136,13 @@ export const TOOL_SCHEMAS = [
       },
       additionalProperties: false,
     },
+    annotations: {
+      title: "Search documents",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   {
     name: "ask_documents",
@@ -128,19 +170,15 @@ export const TOOL_SCHEMAS = [
           maximum: 12,
           description: "Maximum number of passages to retrieve.",
         },
-        history: {
-          type: "array",
-          description: "Optional recent conversation turns.",
-          items: {
-            type: "object",
-            properties: {
-              role: { type: "string", enum: ["user", "assistant"] },
-              content: { type: "string" },
-            },
-          },
-        },
       },
       additionalProperties: false,
+    },
+    annotations: {
+      title: "Ask documents",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
   {
@@ -174,6 +212,13 @@ export const TOOL_SCHEMAS = [
         },
       },
       additionalProperties: false,
+    },
+    annotations: {
+      title: "Import text document",
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
   },
 ] as const;
