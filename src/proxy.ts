@@ -20,6 +20,7 @@ const publicPaths = [
   "/support",
   "/privacy",
   "/terms",
+  "/demo",
 ];
 
 function isPublicPath(pathname: string) {
