@@ -432,20 +432,6 @@ export function buildOpenApiSpec(baseUrl: string) {
               maximum: 12,
               description: "Maximum number of passages to retrieve.",
             },
-            history: {
-              type: "array",
-              description: "Optional recent conversation turns.",
-              items: {
-                type: "object",
-                properties: {
-                  role: {
-                    type: "string",
-                    enum: ["user", "assistant"],
-                  },
-                  content: { type: "string" },
-                },
-              },
-            },
           },
         },
         AskResponse: {
