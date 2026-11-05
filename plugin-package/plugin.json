@@ -14,9 +14,9 @@
   "extensions": {
     "com.openai": {
       "interface": {
-        "displayName": "Search PDF and Chat",
+        "displayName": "LLM lites PDF Chat",
         "shortDescription": "Search PDFs and chat with them",
-        "longDescription": "Search PDFs and chat with your own documents. This plugin connects ChatGPT and Codex to private document vaults, retrieves relevant passages, and lets the host model answer with citations. It can also import plain-text documents. It does not provide legal advice and only accesses documents in the connected account.",
+        "longDescription": "LLM lites PDF Chat connects ChatGPT and Codex to your private PDF and document vaults. It retrieves relevant passages and lets the host model answer with citations. It can also import plain-text documents. It does not provide legal advice and only accesses documents in the connected account.",
         "developerName": "llmlite",
         "category": "Productivity",
         "capabilities": [

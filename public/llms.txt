@@ -1,0 +1,40 @@
+# LLM lites PDF Chat
+
+> Private PDF and document memory for AI assistants. Search the user's own documents, retrieve cited passages, and let the host assistant do the reasoning.
+
+## Product
+
+LLM lites PDF Chat is an MCP server and REST API that stores a user's PDFs and documents, indexes them, and returns relevant passages with document names and page numbers. It does not require the host assistant to use a separate model; Claude, ChatGPT, Grok, and Cursor can answer using their own reasoning over the retrieved memory.
+
+## Links
+
+- Website: https://www.llmlite.xyz/
+- Demo: https://www.llmlite.xyz/demo
+- MCP server: https://www.llmlite.xyz/api/mcp
+- OpenAPI: https://www.llmlite.xyz/openapi.json
+- Tool schemas: https://www.llmlite.xyz/api/plugin/tools
+- OAuth metadata: https://www.llmlite.xyz/.well-known/oauth-authorization-server
+- Privacy: https://www.llmlite.xyz/privacy
+- Terms: https://www.llmlite.xyz/terms
+- Support: https://www.llmlite.xyz/support
+
+## MCP tools
+
+- list_vaults
+- create_vault
+- list_folders
+- create_folder
+- list_documents
+- search_documents
+- ask_documents
+- ingest_text_document
+
+## Recommended flow
+
+1. Connect the MCP server with OAuth.
+2. Call `list_vaults` to discover the user's document collections.
+3. Call `search_documents` with the user's question.
+4. Answer from the returned passages and cite the document name and page number.
+5. Call `ingest_text_document` to add new plain-text documents.
+
+Private document memory requires authentication. Do not use the service for general legal advice unrelated to the user's documents.

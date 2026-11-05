@@ -44,7 +44,7 @@ export function buildPluginManifest(baseUrl: string) {
 
   return {
     schema_version: "v1",
-    name_for_human: "Search PDF and Chat",
+    name_for_human: "LLM lites PDF Chat",
     name_for_model: "llmlite_legal_assistant",
     description_for_human:
       "Search your PDFs and chat with your own documents using cited sources.",

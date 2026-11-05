@@ -21,6 +21,9 @@ const publicPaths = [
   "/privacy",
   "/terms",
   "/demo",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/llms.txt",
 ];
 
 function isPublicPath(pathname: string) {
