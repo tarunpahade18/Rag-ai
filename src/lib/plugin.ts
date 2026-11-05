@@ -44,10 +44,10 @@ export function buildPluginManifest(baseUrl: string) {
 
   return {
     schema_version: "v1",
-    name_for_human: "llmlite Legal Assistant",
+    name_for_human: "Search PDF and Chat",
     name_for_model: "llmlite_legal_assistant",
     description_for_human:
-      "Ask questions across your legal document vaults and get answers with cited sources.",
+      "Search your PDFs and chat with your own documents using cited sources.",
     description_for_model: DESCRIPTION_FOR_MODEL,
     auth: {
       type: "service_http",

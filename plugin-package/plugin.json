@@ -14,9 +14,9 @@
   "extensions": {
     "com.openai": {
       "interface": {
-        "displayName": "llmlite Memory",
-        "shortDescription": "Search your legal documents",
-        "longDescription": "llmlite Memory connects ChatGPT and Codex to the user's private legal document vaults. It retrieves relevant passages and lets the host model answer with citations. It can also import plain-text documents. It does not provide legal advice and only accesses documents in the connected account.",
+        "displayName": "Search PDF and Chat",
+        "shortDescription": "Search PDFs and chat with them",
+        "longDescription": "Search PDFs and chat with your own documents. This plugin connects ChatGPT and Codex to private document vaults, retrieves relevant passages, and lets the host model answer with citations. It can also import plain-text documents. It does not provide legal advice and only accesses documents in the connected account.",
         "developerName": "llmlite",
         "category": "Productivity",
         "capabilities": [
